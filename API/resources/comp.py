@@ -37,12 +37,19 @@ class ComponentsResource(Resource):
 
     def put(self):
         args = put_parser.parse_args()
-        components = {'cpu': Components.cpu, 'gpu': Components.gpu, 'motherboard': Components.motherboard,
-                      'ram': Components.ram, 'case': Components.case, 'storage': Components.storage,
-                      'psu': Components.psu, 'culler': Components.culler, 'fan': Components.fan}
+        components = ['cpu', 'gpu', 'motherboard',
+                      'ram', 'case', 'storage',
+                      'psu', 'culler', 'fan']
         if args['comp'] in components:
             comp = db.one_or_404(db.select(Components).filter_by(id=args['comp_id']))
-
+            comp.__setattr__(args['comp'], args['name'])
+            price = db.one_or_404(db.select(Prices).filter_by(comp_id=args['comp_id']))
+            price.__setattr__(args['comp'], args['price'])
+            amount = db.one_or_404(db.select(Amounts).filter_by(comp_id=args['comp_id']))
+            amount.__setattr__(args['comp'], args['amount'])
+            if 'link' in args:
+                amount = db.one_or_404(db.select(Links).filter_by(comp_id=args['comp_id']))
+                amount.__setattr__(args['comp'], args['link'])
         else:
             additional = Additional(**args)
             db.session.add(additional)

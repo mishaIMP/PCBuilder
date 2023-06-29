@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from dotenv import load_dotenv
 import os
 from states import AddState, Main
-from buttons import start_markup, build_comp_markup, add_info_markup, back_markup
+from buttons import start_markup, build_comp_markup, add_info_markup, back_markup, skip_markup
 from helper import validate_price_range
 from api import Api
 
@@ -18,8 +18,9 @@ api = Api()
 
 @dp.message_handler(commands='start')
 async def start(message: types.Message, state: FSMContext):
-    text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕'
+    text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕\n/my - мои сборки 🖥'
     await bot.send_message(message.chat.id, text, reply_markup=start_markup)
+    await state.reset_data()
     await Main.choose_mode.set()
 
 
@@ -39,13 +40,18 @@ async def command_find(message: types.Message, state: FSMContext):
     await Main.get_price_to_find.set()
 
 
+@dp.message_handler(commands='my', state='*')
+async def command_my(message: types.Message, state: FSMContext):
+    pass
+
+
 @dp.message_handler(state=Main.get_price_to_find)
 async def get_min_price(message: types.Message, state: FSMContext):
     prices = message.text.strip()
     if validate_price_range(prices):
         await state.update_data(min_price=prices.split('-')[0])
         await state.update_data(max_price=prices.split('-')[1])
-        await message.answer('sosi hui')
+        await message.answer('a')
     else:
         await message.answer('цены введены неправильно')
         await Main.get_price_to_find.set()
@@ -58,9 +64,11 @@ async def button_add(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_text('добавить комплектующие', reply_markup=markup)
         await state.update_data(count_additional=0)
         await AddState.add_comp.set()
-    else:
+    elif callback.data == 'find':
         await callback.message.edit_text('Введи диапазон цены в формате:\nмин_цена-макс_цена', reply_markup=back_markup)
         await Main.get_price_to_find.set()
+    else:
+        pass
 
 
 @dp.callback_query_handler(state=Main.get_price_to_find)
@@ -80,12 +88,30 @@ async def add_comp(callback: types.CallbackQuery, state: FSMContext):
         await Main.choose_mode.set()
     elif mode == 'save':
         data = await state.get_data()
-        print(data)
-        await callback.message.edit_text(str(data))
+        await callback.message.edit_text('какое название для этой сборки?', reply_markup=back_markup)
+        await AddState.get_title.set()
     else:
         await state.update_data(comp=mode)
         await callback.message.edit_text('добавить', reply_markup=add_info_markup([]))
         await AddState.add_info.set()
+
+
+@dp.message_handler(state=AddState.get_title)
+async def get_title(message: types.Message, state: FSMContext):
+    title = message.text
+    await state.update_data(title=title)
+    await message.answer('добавь картинку', reply_markup=skip_markup)
+    await AddState.get_img.set()
+
+
+@dp.message_handler(content_types=['photo'])
+async def get_image(message: types.Message, state: FSMContext):
+    pass
+
+
+@dp.callback_query_handler(text='skip', state=AddState.get_img)
+async def skip_image(callback: types.Message, state: FSMContext):
+    pass
 
 
 @dp.callback_query_handler(text='additional', state=AddState.add_comp)
@@ -106,7 +132,7 @@ async def get_comp_name(message: types.Message, state: FSMContext):
     await AddState.add_info.set()
 
 
-@dp.callback_query_handler(state=AddState.add_additional, text='back')
+@dp.callback_query_handler(state=[AddState.add_additional, AddState.get_title], text='back')
 async def back_to_comp_menu(callback: types.CallbackQuery, state: FSMContext):
     added = await state.get_data()
     comps = added.get('comps', [])

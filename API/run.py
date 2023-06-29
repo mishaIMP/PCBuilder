@@ -10,9 +10,9 @@ app = create_app('config')
 
 with app.app_context():
     db.init_app(app)
-    # db.drop_all()
-    # db.create_all()
-    pass
+    db.drop_all()
+    db.create_all()
+    # pass
 
 
 @app.errorhandler(Exception)

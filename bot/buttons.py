@@ -2,12 +2,17 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 find_btn = InlineKeyboardButton('🔍', callback_data='find')
 add_btn = InlineKeyboardButton('➕', callback_data='add')
+my_btn = InlineKeyboardButton('🖥', callback_data='my')
 start_markup = InlineKeyboardMarkup(row_width=2)
-start_markup.add(find_btn, add_btn)
+start_markup.add(find_btn, add_btn, my_btn)
 
 back_btn = InlineKeyboardButton('🔙', callback_data='back')
 back_markup = InlineKeyboardMarkup(row_width=1)
 back_markup.add(back_btn)
+
+skip_btn = InlineKeyboardButton('пропустить', callback_data='skip')
+skip_markup = InlineKeyboardMarkup()
+skip_markup.add(skip_btn)
 
 
 def add_info_markup(added):
