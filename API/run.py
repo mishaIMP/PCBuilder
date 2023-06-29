@@ -3,16 +3,16 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.exceptions import default_exceptions
 
 from resources import create_app
-from API.common.model import db
+from API.common.model import db, migrate
 
 
 app = create_app('config')
 
 with app.app_context():
     db.init_app(app)
-    db.drop_all()
-    db.create_all()
-    # pass
+    migrate.init_app(app, db)
+    # db.drop_all()
+    # db.create_all()
 
 
 @app.errorhandler(Exception)

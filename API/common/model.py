@@ -1,7 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_migrate import Migrate
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 class User(db.Model):
@@ -11,7 +13,7 @@ class User(db.Model):
     components = db.relationship('Components', backref='user', lazy=True)
 
     def __repr__(self):
-        return self.id
+        return str(self.__dict__)
 
 
 class Components(db.Model):
@@ -32,6 +34,10 @@ class Components(db.Model):
     prices = db.relationship('Prices', backref='components', lazy=True)
     amounts = db.relationship('Amounts', backref='components', lazy=True)
     links = db.relationship('Links', backref='components', lazy=True)
+    additional = db.relationship('Additional', backref='components', lazy=True)
+
+    def __repr__(self):
+        return str(self.__dict__)
 
 
 class Prices(db.Model):
@@ -47,6 +53,9 @@ class Prices(db.Model):
     fan = db.Column(db.Integer, default=0)
     comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
 
+    def __repr__(self):
+        return str(self.__dict__)
+
 
 class Amounts(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -60,6 +69,9 @@ class Amounts(db.Model):
     culler = db.Column(db.Integer, default=0)
     fan = db.Column(db.Integer, default=0)
     comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
+
+    def __repr__(self):
+        return str(self.__dict__)
 
 
 class Links(db.Model):
@@ -75,12 +87,18 @@ class Links(db.Model):
     fan = db.Column(db.String(255), nullable=True)
     comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
 
+    def __repr__(self):
+        return str(self.__dict__)
+
 
 class Additional(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    component = db.Column(db.String, nullable=False)
+    comp = db.Column(db.String, nullable=False)
     name = db.Column(db.String(255), nullable=False)
     price = db.Column(db.Integer, default=0)
     amount = db.Column(db.Integer, default=1)
-    link = db.Column(db.String(255), nullable=False)
+    link = db.Column(db.String(255), nullable=True)
     comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
+
+    def __repr__(self):
+        return str(self.__dict__)
