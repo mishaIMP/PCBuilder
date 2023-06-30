@@ -15,7 +15,8 @@ user_list_fields = {
 }
 
 post_parser = reqparse.RequestParser()
-post_parser.add_argument('username', type=str, help='username is required', required=True)
+post_parser.add_argument('username', type=str,
+                         help='username is required', required=True)
 
 
 class UsersResource(Resource):
@@ -27,7 +28,8 @@ class UsersResource(Resource):
             return marshal(user, user_fields)
         else:
             args = request.args.to_dict()
-            users = db.session.execute(db.select(User).order_by(User.id)).fetchall()
+            users = db.session.execute(
+                db.select(User).order_by(User.id)).fetchall()
             # limit = args.get('limit', 0)
             # if limit:
             #     users = users.limit(limit)

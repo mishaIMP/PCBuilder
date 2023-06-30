@@ -2,17 +2,9 @@ from flask import jsonify
 from werkzeug.exceptions import HTTPException
 from werkzeug.exceptions import default_exceptions
 
-from resources import create_app
-from API.common.model import db, migrate
+from API.common.create_app import create_app
 
-
-app = create_app('config')
-
-with app.app_context():
-    db.init_app(app)
-    migrate.init_app(app, db)
-    # db.drop_all()
-    # db.create_all()
+app = create_app('config.py')
 
 
 @app.errorhandler(Exception)

@@ -5,11 +5,16 @@ from API.common.model import db, User, Components, Prices, Amounts, Links, Addit
 # comp_blueprint = Blueprint('components', __name__)
 
 put_parser = reqparse.RequestParser()
-put_parser.add_argument('comp_id', type=int, required=True, help='comp_id is required')
-put_parser.add_argument('comp', type=str, required=True, help='comp is required')
-put_parser.add_argument('name', type=str, required=True, help='name is required')
-put_parser.add_argument('price', type=str, required=True, help='price is required')
-put_parser.add_argument('amount', type=str, required=True, help='amount is required')
+put_parser.add_argument('comp_id', type=int,
+                        required=True, help='comp_id is required')
+put_parser.add_argument('comp', type=str, required=True,
+                        help='comp is required')
+put_parser.add_argument('name', type=str, required=True,
+                        help='name is required')
+put_parser.add_argument('price', type=str, required=True,
+                        help='price is required')
+put_parser.add_argument('amount', type=str, required=True,
+                        help='amount is required')
 put_parser.add_argument('link', type=str)
 
 comp_fields = {
@@ -82,10 +87,10 @@ class ComponentsResource(Resource):
                                                  price_and_amount_field), marshal(amount[0],
                                                                                   price_and_amount_field), marshal(
                 link[0], link_fields), marshal({
-                        'count': len(additional),
-                        'components': [marshal(row, additional_field) for row in additional]
+                    'count': len(additional),
+                    'components': [marshal(row, additional_field) for row in additional]
 
-            }, list_fields)
+                }, list_fields)
 
         else:
             pass
@@ -114,14 +119,18 @@ class ComponentsResource(Resource):
                       'ram', 'case', 'storage',
                       'psu', 'culler', 'fan']
         if args['comp'] in components:
-            comp = db.one_or_404(db.select(Components).filter_by(id=args['comp_id']))
+            comp = db.one_or_404(
+                db.select(Components).filter_by(id=args['comp_id']))
             comp.__setattr__(args['comp'], args['name'])
-            price = db.one_or_404(db.select(Prices).filter_by(comp_id=args['comp_id']))
+            price = db.one_or_404(
+                db.select(Prices).filter_by(comp_id=args['comp_id']))
             price.__setattr__(args['comp'], args['price'])
-            amount = db.one_or_404(db.select(Amounts).filter_by(comp_id=args['comp_id']))
+            amount = db.one_or_404(
+                db.select(Amounts).filter_by(comp_id=args['comp_id']))
             amount.__setattr__(args['comp'], args['amount'])
             if 'link' in args:
-                amount = db.one_or_404(db.select(Links).filter_by(comp_id=args['comp_id']))
+                amount = db.one_or_404(
+                    db.select(Links).filter_by(comp_id=args['comp_id']))
                 amount.__setattr__(args['comp'], args['link'])
         else:
             additional = Additional(**args)

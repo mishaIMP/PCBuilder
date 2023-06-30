@@ -51,7 +51,8 @@ class Prices(db.Model):
     power_supply = db.Column(db.Integer, default=0)
     culler = db.Column(db.Integer, default=0)
     fan = db.Column(db.Integer, default=0)
-    comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
+    comp_id = db.Column(db.Integer, db.ForeignKey(
+        'components.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
@@ -68,7 +69,8 @@ class Amounts(db.Model):
     power_supply = db.Column(db.Integer, default=0)
     culler = db.Column(db.Integer, default=0)
     fan = db.Column(db.Integer, default=0)
-    comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
+    comp_id = db.Column(db.Integer, db.ForeignKey(
+        'components.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
@@ -85,7 +87,8 @@ class Links(db.Model):
     power_supply = db.Column(db.String(255), nullable=True)
     culler = db.Column(db.String(255), nullable=True)
     fan = db.Column(db.String(255), nullable=True)
-    comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
+    comp_id = db.Column(db.Integer, db.ForeignKey(
+        'components.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
@@ -98,7 +101,8 @@ class Additional(db.Model):
     price = db.Column(db.Integer, default=0)
     amount = db.Column(db.Integer, default=1)
     link = db.Column(db.String(255), nullable=True)
-    comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
+    comp_id = db.Column(db.Integer, db.ForeignKey(
+        'components.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
