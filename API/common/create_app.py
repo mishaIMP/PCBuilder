@@ -6,7 +6,6 @@ from .model import db, migrate
 
 def create_app(config_filename):
     app = Flask(__name__, instance_relative_config=True)
-    api = Api(app)
     app.config.from_pyfile(config_filename)
 
     db.init_app(app)
@@ -14,10 +13,17 @@ def create_app(config_filename):
     with app.app_context():
         migrate.init_app(app, db)
 
-    from API.resources.users import UsersResource
-    from API.resources.comp import ComponentsResource
+    from ..resources.users import UsersResource, users_blueprint
+    from ..resources.comp import ComponentsResource, comp_blueprint
 
-    api.add_resource(UsersResource, '/users', '/users/<int:user_id>')
-    api.add_resource(ComponentsResource, '/comp', '/comp/<int:comp_id>', '/add_comp/<int:user_id>')
+    users_api = Api(users_blueprint)
+    comp_api = Api(comp_blueprint)
+
+    users_api.add_resource(UsersResource, '/users', '/users/<int:user_id>')
+    comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:comp_id>', '/add_comp/<int:user_id>',
+                          '/comp/<int:comp_id>/<string:component>')
+
+    app.register_blueprint(users_blueprint)
+    app.register_blueprint(comp_blueprint)
 
     return app

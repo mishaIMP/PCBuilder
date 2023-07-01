@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 from states import AddState, Main
 from buttons import start_markup, build_comp_markup, add_info_markup, back_markup, skip_markup
-from helper import validate_price_range
+from validators import validate_price_range
 from api import Api
 
 load_dotenv()
