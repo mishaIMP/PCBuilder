@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
+from sqlalchemy.sql import func
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -29,7 +30,6 @@ class Components(db.Model):
     fan = db.Column(db.String(75), nullable=True)
     date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     title = db.Column(db.String(50), nullable=True)
-    image = db.Column(db.LargeBinary, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prices = db.relationship('Prices', backref='components', lazy=True)
     amounts = db.relationship('Amounts', backref='components', lazy=True)

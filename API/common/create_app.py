@@ -14,14 +14,15 @@ def create_app(config_filename):
         migrate.init_app(app, db)
 
     from ..resources.users import UsersResource, users_blueprint
-    from ..resources.comp import ComponentsResource, comp_blueprint
+    from ..resources.components import ComponentsResource, comp_blueprint
+    from ..resources.titles import TitleResource
 
     users_api = Api(users_blueprint)
     comp_api = Api(comp_blueprint)
 
     users_api.add_resource(UsersResource, '/users', '/users/<int:user_id>')
-    comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:comp_id>', '/add_comp/<int:user_id>',
-                          '/comp/<int:comp_id>/<string:component>')
+    comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:comp_id>')
+    comp_api.add_resource(TitleResource, '/title')
 
     app.register_blueprint(users_blueprint)
     app.register_blueprint(comp_blueprint)

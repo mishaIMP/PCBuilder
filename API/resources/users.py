@@ -36,6 +36,7 @@ class UsersResource(Resource):
     def post(self):
         """adding user"""
         args = post_parser.parse_args()
+
         user = User(**args)
         db.session.add(user)
         db.session.commit()
@@ -51,18 +52,20 @@ class UsersResource(Resource):
 
     def delete(self, user_id):
         user = db.one_or_404(db.select(User).filter_by(id=user_id))
-        comp = user.components[0]
-        price = comp.prices
-        amount = comp.amounts
-        link = comp.links
-        additional = comp.additional
-        for table in [price, amount, link, additional]:
-            if table:
-                for row in table:
-                    db.session.delete(row)
-        db.session.commit()
-        db.session.delete(comp)
-        db.session.commit()
+        comp = user.components
+        if comp:
+            comp = comp[0]
+            price = comp.prices
+            amount = comp.amounts
+            link = comp.links
+            additional = comp.additional
+            for table in [price, amount, link, additional]:
+                if table:
+                    for row in table:
+                        db.session.delete(row)
+            db.session.commit()
+            db.session.delete(comp)
+            db.session.commit()
         db.session.delete(user)
         db.session.commit()
 

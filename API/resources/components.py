@@ -1,4 +1,4 @@
-from flask_restful import Resource, reqparse, marshal_with, fields, marshal
+from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 from flask import Blueprint
 
 from API.common.helper import convert_data, COMPONENTS
@@ -14,6 +14,14 @@ put_parser.add_argument('price', type=str, required=True, help='price is require
 put_parser.add_argument('amount', type=str, required=True, help='amount is required')
 put_parser.add_argument('link', type=str)
 
+post_parser = reqparse.RequestParser()
+post_parser.add_argument('user_id', type=int, required=True, help='user_id is required')
+
+args_parser = reqparse.RequestParser()
+args_parser.add_argument('comp', type=str, required=False, location='args')
+args_parser.add_argument('anonim', type=bool, required=False, location='args')
+
+
 additional_fields = {
     'comp': fields.String,
     'model': fields.String,
@@ -24,34 +32,36 @@ additional_fields = {
 
 
 class ComponentsResource(Resource):
-    def get(self, comp_id=None, component=None):
+    def get(self, comp_id=None):
         if comp_id:
             comp = db.one_or_404(db.select(Components).filter_by(id=comp_id))
             price = comp.prices[0]
             amount = comp.amounts[0]
             link = comp.links[0]
             additional = comp.additional
+            args = args_parser.parse_args()
+            component = args.get('comp', None)
             if component:
                 if component in COMPONENTS:
                     result = convert_data(comp, price, amount, link, additional, specific=component)
                     return result, 200
                 else:
-                    additional = db.one_or_404(db.select(Additional).filter_by(comp=component))
+                    additional = db.first_or_404(db.select(Additional).filter_by(comp=component))
                     return marshal(additional, additional_fields), 200
 
             else:
-                result = convert_data(comp, price, amount, link, additional)
+                username = None
+                if args['anonim']:
+                    username = db.one_or_404(db.select(User.username).filter_by(id=comp.user_id))
+                result = convert_data(comp, price, amount, link, additional, username=username)
                 return result, 200
 
-        else:
-            pass
-        return {}, 200
+        return abort(404)
 
-    def post(self, user_id=None):
+    def post(self):
         """init pc"""
-        if not user_id:
-            return {'error': 'user_id is required'}
-        user = db.one_or_404(db.select(User).filter_by(id=user_id))
+        args = post_parser.parse_args()
+        user = db.one_or_404(db.select(User).filter_by(id=args['user_id']))
         components = Components(user_id=user.id)
         db.session.add(components)
         db.session.commit()
@@ -73,9 +83,8 @@ class ComponentsResource(Resource):
             price.__setattr__(args['comp'], args['price'])
             amount = comp.amounts[0]
             amount.__setattr__(args['comp'], args['amount'])
-            if 'link' in args:
-                link = db.one_or_404(
-                    db.select(Links).filter_by(comp_id=args['comp_id']))
+            if args['link']:
+                link = comp.links[0]
                 link.__setattr__(args['comp'], args['link'])
         else:
             additional = Additional(**args)
@@ -84,9 +93,10 @@ class ComponentsResource(Resource):
         db.session.commit()
         return {'status': 'ok'}, 200
 
-    def delete(self, comp_id=None, component=None):
+    def delete(self, comp_id=None):
         if not comp_id:
-            return {'error': 'comp_id is required'}
+            abort(404)
+        component = args_parser.parse_args().get('comp', None)
         if component:
             if component in COMPONENTS:
                 comp = db.one_or_404(db.select(Components).filter_by(id=comp_id))

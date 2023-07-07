@@ -16,4 +16,3 @@ class AddState(StatesGroup):
     get_amount = State()
     get_link = State()
     get_title = State()
-    get_img = State()

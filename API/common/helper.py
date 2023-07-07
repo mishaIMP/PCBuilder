@@ -5,7 +5,7 @@ COMPONENTS = ['cpu', 'gpu', 'motherboard', 'ram', 'case', 'storage', 'psu', 'cul
 
 
 def convert_data(comp: Components, price: Prices, amount: Amounts, link: Links, additional: list[Additional],
-                 specific: str | None = None):
+                 username: str = None, specific: str | None = None):
     if specific:
         result = {
             'model': comp.__getattribute__(specific),
@@ -37,6 +37,9 @@ def convert_data(comp: Components, price: Prices, amount: Amounts, link: Links, 
                     'link': el.link
                 }
                 result['additional']['items'].append(element)
-        result.update({'title': comp.title, 'date': str(comp.date), 'image': str(comp.image)})
+        result.update({'title': comp.title, 'date': str(comp.date)})
+
+    if username:
+        result['username'] = username
 
     return result
