@@ -7,3 +7,4 @@ def validate_price_range(pr: str) -> bool:
         print(ex)
         return False
     return True
+

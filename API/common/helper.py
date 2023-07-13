@@ -5,7 +5,7 @@ COMPONENTS = ['cpu', 'gpu', 'motherboard', 'ram', 'case', 'storage', 'psu', 'cul
 
 
 def convert_data(comp: Components, price: Prices, amount: Amounts, link: Links, additional: list[Additional],
-                 username: str = None, specific: str | None = None):
+                 specific: str | None = None):
     if specific:
         result = {
             'model': comp.__getattribute__(specific),
@@ -37,9 +37,13 @@ def convert_data(comp: Components, price: Prices, amount: Amounts, link: Links, 
                     'link': el.link
                 }
                 result['additional']['items'].append(element)
-        result.update({'title': comp.title, 'date': str(comp.date)})
-
-    if username:
-        result['username'] = username
 
     return result
+
+
+def is_valid_params(params: str):
+    for param in params.split('-'):
+        if param not in ('likes', 'total_price', 'author', 'date', 'title'):
+            return False
+    return True
+

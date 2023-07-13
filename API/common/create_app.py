@@ -15,14 +15,14 @@ def create_app(config_filename):
 
     from ..resources.users import UsersResource, users_blueprint
     from ..resources.components import ComponentsResource, comp_blueprint
-    from ..resources.titles import TitleResource
+    from ..resources.public_info import InfoResource
 
     users_api = Api(users_blueprint)
     comp_api = Api(comp_blueprint)
 
     users_api.add_resource(UsersResource, '/users', '/users/<int:user_id>')
     comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:comp_id>')
-    comp_api.add_resource(TitleResource, '/title')
+    comp_api.add_resource(InfoResource, '/info', '/info/<int:info_id>')
 
     app.register_blueprint(users_blueprint)
     app.register_blueprint(comp_blueprint)

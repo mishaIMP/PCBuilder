@@ -12,7 +12,7 @@ def handle_error(e):
     code = 500
     if isinstance(e, HTTPException):
         code = e.code
-    return jsonify(str(e))
+    return jsonify(str(e)), code
 
 
 for ex in default_exceptions:

@@ -1,17 +1,33 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
-from sqlalchemy.sql import func
+from sqlalchemy.orm import backref
 
 db = SQLAlchemy()
 migrate = Migrate()
 
 
 class User(db.Model):
-    __tablename__ = 'users'  # , primaryjoin="users.c.id == components.c.user_id"
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), nullable=False, unique=True)
-    components = db.relationship('Components', backref='user', lazy=True)
+    public_info = db.relationship('PublicInfo', backref='user', lazy=True, passive_deletes=True,
+                                  cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
+class PublicInfo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    likes = db.Column(db.Integer, default=0)
+    total_price = db.Column(db.Integer, nullable=True)
+    author = db.Column(db.String(255), nullable=True)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    title = db.Column(db.String(50), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    components = db.relationship('Components', backref='public_info', lazy=True, passive_deletes=True,
+                                 cascade="all, delete-orphan")
 
     def __repr__(self):
         return str(self.__dict__)
@@ -28,13 +44,15 @@ class Components(db.Model):
     psu = db.Column(db.String(255), nullable=True)
     culler = db.Column(db.String(75), nullable=True)
     fan = db.Column(db.String(75), nullable=True)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    title = db.Column(db.String(50), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    prices = db.relationship('Prices', backref='components', lazy=True)
-    amounts = db.relationship('Amounts', backref='components', lazy=True)
-    links = db.relationship('Links', backref='components', lazy=True)
-    additional = db.relationship('Additional', backref='components', lazy=True)
+    public_info_id = db.Column(db.Integer, db.ForeignKey('public_info.id'), nullable=False)
+    prices = db.relationship('Prices', backref='components', lazy=True, passive_deletes=True,
+                             cascade="all, delete-orphan")
+    amounts = db.relationship('Amounts', backref='components', lazy=True, passive_deletes=True,
+                              cascade="all, delete-orphan")
+    links = db.relationship('Links', backref='components', lazy=True, passive_deletes=True,
+                            cascade="all, delete-orphan")
+    additional = db.relationship('Additional', backref='components', lazy=True, passive_deletes=True,
+                                 cascade="all, delete-orphan")
 
     def __repr__(self):
         return str(self.__dict__)
@@ -85,8 +103,7 @@ class Links(db.Model):
     psu = db.Column(db.String(255), nullable=True)
     culler = db.Column(db.String(255), nullable=True)
     fan = db.Column(db.String(255), nullable=True)
-    comp_id = db.Column(db.Integer, db.ForeignKey(
-        'components.id'), nullable=False)
+    comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
@@ -99,8 +116,7 @@ class Additional(db.Model):
     price = db.Column(db.Integer, nullable=False)
     amount = db.Column(db.Integer, nullable=False)
     link = db.Column(db.String(255), nullable=True)
-    comp_id = db.Column(db.Integer, db.ForeignKey(
-        'components.id'), nullable=False)
+    comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)

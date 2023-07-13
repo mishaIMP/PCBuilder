@@ -10,9 +10,9 @@ class Main(StatesGroup):
 class AddState(StatesGroup):
     add_comp = State()
     add_additional = State()
-    add_info = State()
-    get_name = State()
-    get_comp_price = State()
+    get_model = State()
+    get_price = State()
     get_amount = State()
     get_link = State()
     get_title = State()
+    add_info = State()
