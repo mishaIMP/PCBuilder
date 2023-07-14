@@ -30,7 +30,7 @@ parser.add_argument('author', type=str, required=False)
 parser.add_argument('likes', type=int, required=False)
 parser.add_argument('title', type=str, required=False)
 
-post_parser = parser
+post_parser = parser.copy()
 post_parser.add_argument('user_id', type=int, required=True, help='comp is required')
 
 params_parser = reqparse.RequestParser()
@@ -65,7 +65,7 @@ class InfoResource(Resource):
 
     @marshal_with(public_info_fields)
     def post(self):
-        args = parser.parse_args()
+        args = post_parser.parse_args()
         public_info = PublicInfo(**args)
         db.session.add(public_info)
         db.session.commit()

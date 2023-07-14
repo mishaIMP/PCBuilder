@@ -6,19 +6,18 @@ from API.common.model import db, User, Components, Prices, Amounts, Links, Addit
 
 comp_blueprint = Blueprint('components', __name__)
 
-put_parser = reqparse.RequestParser()
-put_parser.add_argument('comp', type=str, required=False)
-put_parser.add_argument('model', type=str, required=False)
-put_parser.add_argument('price', type=str, required=False)
-put_parser.add_argument('amount', type=str, required=False)
-put_parser.add_argument('link', type=str)
+patch_parser = reqparse.RequestParser()
+patch_parser.add_argument('comp', type=str, required=False)
+patch_parser.add_argument('model', type=str, required=False)
+patch_parser.add_argument('price', type=str, required=False)
+patch_parser.add_argument('amount', type=str, required=False)
+patch_parser.add_argument('link', type=str)
 
 post_parser = reqparse.RequestParser()
 post_parser.add_argument('info_id', type=int, required=True, help='info_id is required')
 
 args_parser = reqparse.RequestParser()
 args_parser.add_argument('comps', type=str, required=False, location='args')
-
 
 additional_fields = {
     'comp': fields.String,
@@ -72,7 +71,7 @@ class ComponentsResource(Resource):
         return {'comp_id': components.id}, 201
 
     def put(self):
-        # args = put_parser.parse_args()
+        # args = patch_parser.parse_args()
         # if args['comp'] in COMPONENTS:
         #     comp = db.one_or_404(db.select(Components).filter_by(id=args['info_id']))
         #     comp.__setattr__(args['comp'], args['model'])
@@ -92,7 +91,7 @@ class ComponentsResource(Resource):
     def patch(self, comp_id=None):
         if not comp_id:
             abort(404)
-        args = put_parser.parse_args()
+        args = patch_parser.parse_args()
         if args['comp'] in COMPONENTS:
             comp = db.one_or_404(db.select(Components).filter_by(id=comp_id))
             comp.__setattr__(args['comp'], args['model'])
@@ -109,8 +108,19 @@ class ComponentsResource(Resource):
                 link = comp.links[0]
                 link.__setattr__(args['comp'], args['link'])
         else:
-            additional = Additional(**args, comp_id=comp_id)
-            db.session.add(additional)
+            additional = db.session.execute(
+                db.select(Additional).filter_by(comp=args['comp'], comp_id=comp_id)).scalars().first()
+            if additional:
+                for arg in args:
+                    if args[arg]:
+                        additional.__setattr__(arg, args[arg])
+            else:
+                res = {}
+                for arg in args:
+                    if args[arg]:
+                        res[arg] = args[arg]
+                additional = Additional(**res, comp_id=comp_id)
+                db.session.add(additional)
 
         db.session.commit()
         return {}, 204

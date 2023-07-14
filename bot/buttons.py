@@ -14,27 +14,28 @@ skip_markup = InlineKeyboardMarkup()
 skip_markup.add(InlineKeyboardButton('пропустить', callback_data='skip'))
 
 
-def add_info_markup(added):
+def add_info_markup(added: dict):
     info = {'модель': 'model', 'цену': 'price', 'количество': 'amount', 'ссылку': 'link'}
     info_markup = InlineKeyboardMarkup(row_width=1)
     is_ready = True
     for key, val in info.items():
-        if not added['val'] not in ('amount', 'link'):
+        if not val not in ('amount', 'link') and val not in added:
             is_ready = False
-        icon = '✏' if val in added else ''
+        icon = '✏' if added[val] else ''
         btn = InlineKeyboardButton(icon + key + icon, callback_data=val)
         info_markup.add(btn)
     if is_ready:
         save_btn = InlineKeyboardButton('☑', callback_data='save')
-        info_markup.add(save_btn)
-
-    info_markup.add(InlineKeyboardButton('🗑', callback_data='delete'), InlineKeyboardButton('🔙', callback_data='back'))
+        info_markup.add(save_btn, InlineKeyboardButton('🗑', callback_data='delete'))
+    else:
+        info_markup.add(InlineKeyboardButton('🔙', callback_data='back'))
 
     return info_markup
 
 
-def build_comp_markup(added, count: int = 0):
+def build_comp_markup(added):
     components = {
+        'название': 'title',
         'процессор': 'cpu',
         'видеокарту': 'gpu',
         'материнскую плату': 'motherboard',
@@ -55,13 +56,15 @@ def build_comp_markup(added, count: int = 0):
             btn = InlineKeyboardButton('✏' + key + '✏', callback_data='edit_' + val)
         comp_markup.add(btn)
 
-    if count == 0:
-        additional_btn = InlineKeyboardButton('дополнительные комплектующие', callback_data='additional')
-        comp_markup.add(additional_btn)
-    elif count < 5:
-        num = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'][count - 1]
-        additional_btn = InlineKeyboardButton(f'{num}дополнительные комплектующие{num}', callback_data='additional')
-        comp_markup.add(additional_btn)
+    count = 0
+    for comp in added:
+        if comp not in components.values():
+            btn = InlineKeyboardButton('✏' + comp + '✏', callback_data='edit_' + comp)
+            comp_markup.add(btn)
+            count += 1
+
+    if count < 5:
+        comp_markup.add(InlineKeyboardButton('➕', callback_data='additional'))
 
     if is_ready:
         finish_btn = InlineKeyboardButton('☑', callback_data='save')
@@ -70,3 +73,12 @@ def build_comp_markup(added, count: int = 0):
     comp_markup.add(InlineKeyboardButton('удалить сборку', callback_data='back'))
 
     return comp_markup
+
+
+def build_final_markup(username):
+    markup = InlineKeyboardMarkup()
+    change_btn = InlineKeyboardButton('✏', callback_data='change')
+    save_anonymously = InlineKeyboardButton('сохранить анонимно', callback_data='save_anonim')
+    save_with_username = InlineKeyboardButton(f'сохранить от @{username}', callback_data='save_with_username')
+    markup.add(change_btn, save_anonymously, save_with_username)
+    return markup

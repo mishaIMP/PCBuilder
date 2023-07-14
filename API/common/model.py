@@ -114,7 +114,7 @@ class Additional(db.Model):
     comp = db.Column(db.String, nullable=False)
     model = db.Column(db.String(255), nullable=False)
     price = db.Column(db.Integer, nullable=False)
-    amount = db.Column(db.Integer, nullable=False)
+    amount = db.Column(db.Integer, default=1)
     link = db.Column(db.String(255), nullable=True)
     comp_id = db.Column(db.Integer, db.ForeignKey('components.id'), nullable=False)
 
