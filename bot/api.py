@@ -1,9 +1,10 @@
 import requests
 import json
+from datetime import datetime
 
 
 class Api:
-    def __init__(self, ip):
+    def __init__(self, ip: str):
         self.IP = ip
 
     headers = {
@@ -67,14 +68,32 @@ class Api:
             return True
         return False
 
-    def get_pc(self, comp_id: int, comp: str = None):
+    def get_components(self, comp_id: int, comp: str = None) -> object | None:
         param = f'?comps={comp}' if comp else ''
         response = requests.get(self.IP + f'/comp/{comp_id}{param}')
         if response.status_code == 200:
             return response.json()
         return None
 
-    def final_save(self, info_id: int, total_price: int, author: str | None = None):
+    def get_pc_list(self, filters: dict) -> object | None:
+        # if filters['date']:
+        #
+        #     time = {
+        #         'day': ...,
+        #         'week': ...,
+        #         'month': ...,
+        #         '3 months': ...,
+        #         'year': ...,
+        #         'more': ...
+        #     }
+        #
+        # response = requests.get(self.IP + f'/info?params=id-comp_id', headers=self.headers)
+        # if response.status_code == 200:
+        #     return response.json()
+        # return None
+        pass
+
+    def final_save(self, info_id: int, total_price: int, author: str | None = None) -> bool:
         payload = json.dumps({
             'total_price': total_price,
             'author': author

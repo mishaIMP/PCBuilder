@@ -5,9 +5,8 @@ from dotenv import load_dotenv
 import os
 
 from helper import show_pc, calculate_total_price
-from states import AddState, Main
-from buttons import start_markup, build_comp_markup, add_info_markup, back_markup, skip_markup, build_final_markup
-from validators import validate_price_range
+from states import AddState, Main, FindState
+from buttons import Buttons
 from api import Api
 
 load_dotenv()
@@ -16,12 +15,13 @@ bot = Bot(token=TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
 api = Api(os.getenv('IP'))
+buttons = Buttons()
 
 
 @dp.message_handler(commands='start')
 async def start(message: types.Message, state: FSMContext):
     text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕\n/my - мои сборки 🖥'
-    await bot.send_message(message.chat.id, text, reply_markup=start_markup)
+    await bot.send_message(message.chat.id, text, reply_markup=buttons.start_markup())
     data = await state.get_data()
     await state.reset_data()
     if 'user_id' not in data:
@@ -50,7 +50,7 @@ async def command_add(message: types.Message, state: FSMContext):
     else:
         await message.answer('произошла ошибка')
     await state.update_data(user_id=data['user_id'], comps=[])
-    markup = build_comp_markup([])
+    markup = buttons.build_comp_markup([])
     await message.answer('добавь комплектующие', reply_markup=markup)
     await AddState.add_comp.set()
 
@@ -62,9 +62,16 @@ async def command_find(message: types.Message, state: FSMContext):
     if 'info_id' in data or 'comp_id' in data:
         if not api.delete_pc(comp_id=data['comp_id'], info_id=data['info_id']):
             await message.answer('произошла ошибка')
-    await state.update_data(user_id=data['user_id'])
-    await message.answer('Введи диапазон цены в формате:\nмин_цена-макс_цена')
-    await Main.get_price_to_find.set()
+    filters = {
+        'min_price': None,
+        'max_price': None,
+        'author': None,
+        'title': None,
+        'date': None
+    }
+    await state.update_data(user_id=data['user_id'], filters=filters)
+    await message.answer('добавь фильтры', reply_markup=buttons.filter_markup(filters))
+    await FindState.choose_filters.set()
 
 
 @dp.message_handler(commands='my', state='*')
@@ -77,22 +84,10 @@ async def command_my(message: types.Message, state: FSMContext):
     await state.update_data(user_id=data['user_id'])
 
 
-@dp.message_handler(state=Main.get_price_to_find)
-async def get_min_price(message: types.Message, state: FSMContext):
-    prices = message.text.strip()
-    if validate_price_range(prices):
-        await state.update_data(min_price=prices.split('-')[0])
-        await state.update_data(max_price=prices.split('-')[1])
-        await message.answer('a')
-    else:
-        await message.answer('цены введены неправильно')
-        await Main.get_price_to_find.set()
-
-
 @dp.callback_query_handler(state=Main.choose_mode)
 async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == 'add':
-        markup = build_comp_markup([])
+        markup = buttons.build_comp_markup([])
         await callback.message.edit_text('добавить комплектующие', reply_markup=markup)
         await state.update_data()
         data = await state.get_data()
@@ -103,25 +98,20 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
         else:
             await callback.answer('произошла ошибка')
     elif callback.data == 'find':
-        await callback.message.edit_text('Введи диапазон цены в формате:\nмин_цена-макс_цена', reply_markup=back_markup)
-        await Main.get_price_to_find.set()
+        filters = {'min_price': None, 'max_price': None, 'author': None, 'title': None, 'date': None}
+        await state.update_data(filters=filters)
+        await callback.message.edit_text('добавь фильтры', reply_markup=buttons.filter_markup(filters))
+        await FindState.choose_filters.set()
     else:
         pass
-
-
-@dp.callback_query_handler(state=Main.get_price_to_find)
-async def back_to_start_menu(callback: types.CallbackQuery):
-    text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕'
-    await callback.message.edit_text(text, reply_markup=start_markup)
-    await Main.choose_mode.set()
 
 
 @dp.callback_query_handler(lambda c: c.data != 'additional', state=AddState.add_comp)
 async def add_comp(callback: types.CallbackQuery, state: FSMContext):
     mode = callback.data
     if mode == 'back':
-        text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕'
-        await callback.message.edit_text(text, reply_markup=start_markup)
+        text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕\n/my - мои сборки 🖥'
+        await callback.message.edit_text(text, reply_markup=buttons.start_markup())
         data = await state.get_data()
         await state.reset_data()
         await state.update_data(user_id=data['user_id'])
@@ -131,25 +121,25 @@ async def add_comp(callback: types.CallbackQuery, state: FSMContext):
     elif mode == 'save':
         await callback.message.edit_text('сборка сохранена')
         data = await state.get_data()
-        res = api.get_pc(data['comp_id'])
+        res = api.get_components(data['comp_id'])
         if not res:
             await callback.answer('произошла ошибка')
         else:
             await state.update_data(total_price=calculate_total_price(res))
             await callback.message.answer(text=show_pc(res), parse_mode='html',
-                                          reply_markup=build_final_markup(callback.from_user.username))
+                                          reply_markup=buttons.build_final_markup(callback.from_user.username))
             await AddState.final_stage.set()
     elif mode in ('title', 'edit_title'):
-        await callback.message.edit_text('введи название сборки', reply_markup=back_markup)
+        await callback.message.edit_text('введи название сборки', reply_markup=buttons.back_markup())
         await AddState.get_title.set()
     elif mode.startswith('edit_'):
         data = await state.get_data()
-        info = api.get_pc(comp_id=data['comp_id'], comp=mode[5:])
+        info = api.get_components(comp_id=data['comp_id'], comp=mode[5:])
         if info:
             component = info['additional'][0] if 'additional' in info else info[mode[5:]]
             text = f'модель: {component["model"]}\nцена: {component["price"]}\nколичество: {component["amount"]}\n'
-            text += component['link'] + '\n' if component['link'] else ''
-            await callback.message.edit_text(text + 'изменить', reply_markup=add_info_markup(component))
+            text += f"ссылка: {component['link']}\n" if component['link'] else ''
+            await callback.message.edit_text(text + 'изменить', reply_markup=buttons.add_info_markup(component))
             await state.update_data(comp=mode[5:], model=component['model'], price=component['price'],
                                     amount=component['amount'], link=component['link'])
             await AddState.add_info.set()
@@ -173,7 +163,7 @@ async def get_model(message: types.Message, state: FSMContext):
 async def get_price(message: types.Message, state: FSMContext):
     price = message.text
     await state.update_data(price=price)
-    await message.answer('введи количество (1 по умолчанию)', reply_markup=skip_markup)
+    await message.answer('введи количество (1 по умолчанию)', reply_markup=buttons.skip_markup())
     await AddState.get_amount.set()
 
 
@@ -181,7 +171,7 @@ async def get_price(message: types.Message, state: FSMContext):
 async def get_amount(message: types.Message, state: FSMContext):
     amount = message.text
     await state.update_data(amount=amount)
-    await message.answer('введи ссылку', reply_markup=skip_markup)
+    await message.answer('введи ссылку', reply_markup=buttons.skip_markup())
     await AddState.get_link.set()
 
 
@@ -200,14 +190,14 @@ async def get_link(message: types.Message, state: FSMContext):
         map(lambda k: (k, data[k]),
             filter(lambda k: k in ('user_id', 'info_id', 'comp_id', 'comps'), data)))
     await state.update_data(data)
-    markup = build_comp_markup(added=data['comps'])
+    markup = buttons.build_comp_markup(added=data['comps'])
     await message.answer('изменить сборку', reply_markup=markup)
     await AddState.add_comp.set()
 
 
 @dp.callback_query_handler(state=AddState.get_amount, text='skip')
 async def skip_amount(callback: types.CallbackQuery):
-    await callback.message.edit_text('введи ссылку', reply_markup=skip_markup)
+    await callback.message.edit_text('введи ссылку', reply_markup=buttons.skip_markup())
     await AddState.get_link.set()
 
 
@@ -224,7 +214,7 @@ async def skip_link(callback: types.CallbackQuery, state: FSMContext):
         map(lambda k: (k, data[k]),
             filter(lambda k: k in ('user_id', 'info_id', 'comp_id', 'comps'), data)))
     await state.update_data(data)
-    markup = build_comp_markup(added=data['comps'])
+    markup = buttons.build_comp_markup(added=data['comps'])
     await callback.message.edit_text('изменить сборку', reply_markup=markup)
     await AddState.add_comp.set()
 
@@ -238,14 +228,14 @@ async def get_title(message: types.Message, state: FSMContext):
     comps = data['comps']
     comps.append('title')
     await state.update_data(comps=comps)
-    markup = build_comp_markup(added=comps)
+    markup = buttons.build_comp_markup(added=comps)
     await message.answer('изменить', reply_markup=markup)
     await AddState.add_comp.set()
 
 
 @dp.callback_query_handler(text='additional', state=AddState.add_comp)
 async def add_additional(callback: types.CallbackQuery):
-    await callback.message.edit_text('какое комплектующее хочешь добавить?', reply_markup=back_markup)
+    await callback.message.edit_text('какое комплектующее хочешь добавить?', reply_markup=buttons.back_markup())
     await AddState.add_additional.set()
 
 
@@ -261,7 +251,7 @@ async def get_comp_name(message: types.Message, state: FSMContext):
 async def back_to_comp_menu(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     comps = data['comps']
-    markup = build_comp_markup(added=comps)
+    markup = buttons.build_comp_markup(added=comps)
     await callback.message.edit_text('изменить', reply_markup=markup)
     await AddState.add_comp.set()
 
@@ -271,16 +261,16 @@ async def add_info(callback: types.CallbackQuery, state: FSMContext):
     callback_data = callback.data
 
     if callback_data == 'model':
-        await callback.message.edit_text('введи название', reply_markup=back_markup)
+        await callback.message.edit_text('введи название', reply_markup=buttons.back_markup())
         await AddState.edit_model.set()
     elif callback_data == 'price':
-        await callback.message.edit_text('введи цену', reply_markup=back_markup)
+        await callback.message.edit_text('введи цену', reply_markup=buttons.back_markup())
         await AddState.edit_price.set()
     elif callback_data == 'amount':
-        await callback.message.edit_text('введи количество', reply_markup=back_markup)
+        await callback.message.edit_text('введи количество', reply_markup=buttons.back_markup())
         await AddState.edit_amount.set()
     elif callback_data == 'link':
-        await callback.message.edit_text('введи ссылку', reply_markup=back_markup)
+        await callback.message.edit_text('введи ссылку', reply_markup=buttons.back_markup())
         await AddState.edit_link.set()
     else:
         data = await state.get_data()
@@ -301,7 +291,7 @@ async def add_info(callback: types.CallbackQuery, state: FSMContext):
         await state.update_data(dict(
             map(lambda k: (k, data[k]),
                 filter(lambda k: k in ('user_id', 'info_id', 'comp_id', 'comps'), data))))
-        markup = build_comp_markup(added=data['comps'])
+        markup = buttons.build_comp_markup(added=data['comps'])
         await callback.message.edit_text('изменить сборку', reply_markup=markup)
         await AddState.add_comp.set()
 
@@ -320,17 +310,18 @@ async def get_info(message: types.Message, state: FSMContext):
         await state.update_data(link=text)
     data = await state.get_data()
     text = f'модель: {data["model"]}\nцена: {data["price"]}\nколичество: {data["amount"]}\n'
-    text += data['link'] if data['link'] else ''
-    await message.answer(text + 'изменить', reply_markup=add_info_markup(data))
+    text += f"ссылка: {data['link']}\n" if data['link'] else ''
+    await message.answer(text + 'изменить', reply_markup=buttons.add_info_markup(data))
     await AddState.add_info.set()
 
 
 @dp.callback_query_handler(state=[AddState.edit_model, AddState.edit_price, AddState.edit_amount, AddState.edit_link])
 async def back_to_info_menu(callback: types.CallbackQuery, state: FSMContext):
+    # callback.data == 'back':
     data = await state.get_data()
     text = f'модель: {data["model"]}\nцена: {data["price"]}\nколичество: {data["amount"]}\n'
     text += f'ссылка: {data["link"]}\n' if data['link'] else ''
-    await callback.message.edit_text('изменить', reply_markup=add_info_markup(data))
+    await callback.message.edit_text(text + 'изменить', reply_markup=buttons.add_info_markup(data))
     await AddState.add_info.set()
 
 
@@ -338,11 +329,10 @@ async def back_to_info_menu(callback: types.CallbackQuery, state: FSMContext):
 async def final_choice(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if callback.data == 'change':
-        markup = build_comp_markup(added=data['comps'])
+        markup = buttons.build_comp_markup(added=data['comps'])
         await callback.message.edit_text('изменить сборку', reply_markup=markup)
         await AddState.add_comp.set()
     else:
-
         if callback.data == 'save_anonim':
             username = None
         else:
@@ -352,11 +342,95 @@ async def final_choice(callback: types.CallbackQuery, state: FSMContext):
             await callback.answer('произошла ошибка')
         await callback.message.edit_text('сборка сохранена')
         text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕\n/my - мои сборки 🖥'
-        await callback.message.answer(text, reply_markup=start_markup)
+        await callback.message.answer(text, reply_markup=buttons.start_markup())
         data = await state.get_data()
         await state.reset_data()
         await state.reset_state()
         await state.update_data(user_id=data['user_id'])
+
+
+@dp.callback_query_handler(state=FindState.choose_filters)
+async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
+    if callback.data == 'back':
+        text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕\n/my - мои сборки 🖥'
+        await callback.message.edit_text(text, reply_markup=buttons.start_markup())
+        await Main.choose_mode.set()
+    elif callback.data == 'min_price':
+        await callback.message.edit_text('введи минимальную цену')
+        await FindState.get_min_price.set()
+    elif callback.data == 'max_price':
+        await callback.message.edit_text('введи максимальную цену')
+        await FindState.get_max_price.set()
+    elif callback.data == 'author':
+        await callback.message.edit_text('введи username автора')
+        await FindState.get_author.set()
+    elif callback.data == 'title':
+        await callback.message.edit_text('введи название сборки')
+        await FindState.get_title.set()
+    elif callback.data == 'date':
+        await callback.message.edit_text('выбери промежуток времени', reply_markup=buttons.time_markup())
+        await FindState.get_date.set()
+    elif callback.data == 'no filters':
+        data = await state.get_data()
+        data['filters']['min_price'] = None
+        data['filters']['max_price'] = None
+        data['filters']['author'] = None
+        data['filters']['date'] = None
+        data['filters']['title'] = None
+        await state.update_data(data)
+        await callback.message.edit_text('добавь фильтры', reply_markup=buttons.filter_markup(data['filters']))
+    else:
+        await callback.message.edit_text('поиск...')
+        data = await state.get_data()
+        res = api.get_pc_list(data['filters'])
+        if not res:
+            await callback.message.edit_text('ничего не найдено😔😔😔', reply_markup=buttons.back_markup())
+        else:
+            pass
+
+
+@dp.message_handler(state=[FindState.get_min_price, FindState.get_max_price])
+async def get_min_and_max_price(message: types.Message, state: FSMContext):
+    price = message.text
+    data = await state.get_data()
+    current_state = await state.get_state()
+    if current_state == 'FindState:get_min_price':
+        data['filters']['min_price'] = price
+    else:
+        data['filters']['max_price'] = price
+    await state.update_data(data)
+    await message.answer('добавь фильтры', reply_markup=buttons.filter_markup(data['filters']))
+    await FindState.choose_filters.set()
+
+
+@dp.message_handler(state=FindState.get_author)
+async def get_author(message: types.Message, state: FSMContext):
+    author = message.text
+    data = await state.get_data()
+    data['filters']['author'] = author
+    await state.update_data(data)
+    await message.answer('добавь фильтры', reply_markup=buttons.filter_markup(data['filters']))
+    await FindState.choose_filters.set()
+
+
+@dp.message_handler(state=FindState.get_author)
+async def get_title_to_find(message: types.Message, state: FSMContext):
+    title = message.text
+    data = await state.get_data()
+    data['filters']['title'] = title
+    await state.update_data(data)
+    await message.answer('добавь фильтры', reply_markup=buttons.filter_markup(data['filters']))
+    await FindState.choose_filters.set()
+
+
+@dp.callback_query_handler(state=FindState.get_date)
+async def get_date(callback: types.CallbackQuery, state: FSMContext):
+    date = callback.data
+    data = await state.get_data()
+    data['filters']['date'] = date
+    await state.update_data(data)
+    await callback.message.edit_text('добавь фильтры', reply_markup=buttons.filter_markup(data['filters']))
+    await FindState.choose_filters.set()
 
 
 executor.start_polling(dp, skip_updates=True)

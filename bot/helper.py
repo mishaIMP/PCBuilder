@@ -1,7 +1,7 @@
 from aiogram.utils.markdown import hbold, hlink, hitalic
 
 
-def show_pc(data: dict) -> str:
+def show_pc(data: dict | object) -> str:
     text = ''
     for key, val in data['components'].items():
         if all((val['model'], val['price'], val['amount'])):
@@ -21,7 +21,7 @@ def show_pc(data: dict) -> str:
     return text
 
 
-def calculate_total_price(data: dict) -> int:
+def calculate_total_price(data: dict | object) -> int:
     total_price = 0
     for key in data['components']:
         if data['components'][key]['price']:

@@ -3,7 +3,6 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 class Main(StatesGroup):
     choose_mode = State()
-    get_price_to_find = State()
     add_assembly = State()
 
 
@@ -21,3 +20,12 @@ class AddState(StatesGroup):
     get_title = State()
     add_info = State()
     final_stage = State()
+
+
+class FindState(StatesGroup):
+    choose_filters = State()
+    get_min_price = State()
+    get_max_price = State()
+    get_author = State()
+    get_title = State()
+    get_date = State()
