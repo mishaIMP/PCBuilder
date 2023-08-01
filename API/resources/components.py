@@ -1,7 +1,7 @@
 from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 from flask import Blueprint
 
-from API.common.helper import convert_data, COMPONENTS
+from API.common.helper import convert_comp_data, COMPONENTS
 from API.common.model import db, User, Components, Prices, Amounts, Links, Additional, PublicInfo
 
 comp_blueprint = Blueprint('components', __name__)
@@ -42,14 +42,14 @@ class ComponentsResource(Resource):
                 result = {}
                 for param in params.split('-'):
                     if param in COMPONENTS:
-                        result[param] = convert_data(comp, price, amount, link, additional, specific=param)
+                        result[param] = convert_comp_data(comp, price, amount, link, additional, specific=param)
                     else:
                         additional = db.first_or_404(db.select(Additional).filter_by(comp=param))
                         if 'additional' not in result:
                             result['additional'] = []
                         result['additional'].append(marshal(additional, additional_fields))
             else:
-                result = convert_data(comp, price, amount, link, additional)
+                result = convert_comp_data(comp, price, amount, link, additional)
             return result, 200
 
         return abort(404)

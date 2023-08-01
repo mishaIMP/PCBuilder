@@ -1,8 +1,9 @@
+from datetime import datetime
+
 from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 
-from API.common.helper import is_valid_params
+from API.common.helper import is_valid_params, convert_info
 from API.common.model import db, User, Components, Prices, Amounts, Links, Additional, PublicInfo
-
 
 public_info_fields = {
     'id': fields.Integer,
@@ -10,7 +11,7 @@ public_info_fields = {
     'total_price': fields.Integer,
     'author': fields.String,
     'title': fields.String,
-    'date': fields.DateTime,
+    # 'date': fields.DateTime,
     'user_id': fields.Integer
 }
 
@@ -19,10 +20,17 @@ list_fields = {
     'items': fields.List(fields.Nested(public_info_fields))
 }
 
-
 args_parser = reqparse.RequestParser()
-args_parser.add_argument('min_price', type=int, required=True, help='min_price is required', location='args')
-args_parser.add_argument('max_price', type=int, required=True, help='max_price is required', location='args')
+args_parser.add_argument('min_price', type=int, required=False, location='args')
+args_parser.add_argument('min_price', type=int, required=False, location='args')
+args_parser.add_argument('max_price', type=int, required=False, location='args')
+args_parser.add_argument('author', type=str, required=False, location='args')
+args_parser.add_argument('user_id', type=int, required=False, location='args')
+args_parser.add_argument('limit', type=int, required=False, location='args')
+args_parser.add_argument('date', type=lambda x: datetime.strptime(x, '%Y-%m-%d'), required=False,
+                         location='args')
+args_parser.add_argument('title', type=str, required=False, location='args')
+args_parser.add_argument('params', type=str, required=False, location='args')
 
 parser = reqparse.RequestParser()
 parser.add_argument('total_price', type=int, required=False)
@@ -39,29 +47,36 @@ params_parser.add_argument('params', type=str, required=False, location='args')
 
 class InfoResource(Resource):
     def get(self, info_id=None):
-        public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
-        if info_id:
-            params = params_parser.parse_args()['params']
-            if params:
-                if not is_valid_params(params):
-                    abort(404)
-
-                res = {}
-                for param in params.split('-'):
-                    res[param] = public_info.__getattribute__(param)
-                return res, 200
-
-            return marshal(public_info, public_info_fields), 200
-
         args = args_parser.parse_args()
-        min_price = args['min_price']
-        max_price = args['max_price']
-        public_info = db.session.execute(
-            db.select(PublicInfo).fiter_by(min_price <= PublicInfo.total_price <= max_price)).scalars().all()
-        return marshal({
-            'count': len(public_info),
-            'items': [marshal(i, public_info_fields) for i in public_info]
-        }, list_fields), 200
+        params = args['params']
+        if not is_valid_params(params):
+            abort(404)
+
+        if info_id:
+            public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+            result = convert_info(public_info, params)
+            return result
+
+        query = PublicInfo.query
+        if args['min_price']:
+            query = query.filter(PublicInfo.total_price >= args['min_price'])
+        if args['max_price']:
+            query = query.filter(PublicInfo.total_price <= args['max_price'])
+        if args['author']:
+            query = query.filter(PublicInfo.author == args['author'])
+        if args['title']:
+            query = query.filter(PublicInfo.title.like('%' + args['title'] + '%'))
+        if args['user_id']:
+            query = query.filter(PublicInfo.user_id == args['user_id'])
+        if args['limit']:
+            query = query.limit(args['limit'])
+        if args['date']:
+            query = query.filter(PublicInfo.date >= args['date'])
+
+        results = query.all()
+        results = convert_info(results, params)
+
+        return results
 
     @marshal_with(public_info_fields)
     def post(self):
