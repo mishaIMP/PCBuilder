@@ -30,8 +30,7 @@ class Buttons:
             'author': '🤵‍автор',
             'date': '🗓время'
         }
-        time = {'day': 'день', 'week': 'неделя', 'month': 'месяц', '3 months': '3 месяца', 'year': 'год',
-                'more': 'больше года'}
+        time = {'day': 'день', 'week': 'неделя', 'month': 'месяц', '3 months': '3 месяца', 'year': 'год'}
         filter_exists = False
         for i in filters_:
             if filters[i]:
@@ -57,8 +56,7 @@ class Buttons:
             InlineKeyboardButton('неделя', callback_data='week'),
             InlineKeyboardButton('месяц', callback_data='month'),
             InlineKeyboardButton('3 месяца', callback_data='3 months'),
-            InlineKeyboardButton('год', callback_data='year'),
-            InlineKeyboardButton('больше года', callback_data='more')
+            InlineKeyboardButton('год', callback_data='year')
         )
         return time_markup
 
@@ -81,7 +79,7 @@ class Buttons:
 
         return info_markup
 
-    def build_comp_markup(self, added):
+    def build_comp_markup(self, added, edit: bool = False):
         components = {
             'название': 'title',
             'процессор': 'cpu',
@@ -115,18 +113,38 @@ class Buttons:
             comp_markup.add(InlineKeyboardButton('➕добавить еще', callback_data='additional'))
 
         if is_ready:
-            finish_btn = InlineKeyboardButton('✅сохранить', callback_data='save')
+            finish_btn = InlineKeyboardButton('✅сохранить', callback_data='edit_save' if edit else 'save')
             comp_markup.add(finish_btn)
 
         comp_markup.add(InlineKeyboardButton('🗑удалить сборку', callback_data='back'))
 
         return comp_markup
 
-    def build_final_markup(self, username):
+    def build_final_markup(self, username, back: bool = False):
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
             InlineKeyboardButton('✏изменить', callback_data='change'),
             InlineKeyboardButton('🕵️‍сохранить анонимно', callback_data='save_anonim'),
             InlineKeyboardButton(f'😀сохранить от @{username}', callback_data='save_with_username')
         )
+        if back:
+            markup.add(InlineKeyboardButton('🔙назад', callback_data='back'))
+        return markup
+    
+    def my_assemblies(self, data: list[dict]):
+        markup = InlineKeyboardMarkup(row_width=1)
+        for item in data:
+            markup.add(InlineKeyboardButton(item['title'], callback_data='assembly_' + item['id']))
+        return markup
+    
+    def show_pc_markup(self, current: int, max: int):
+        markup = InlineKeyboardMarkup(row_width=3)
+        if current:
+            markup.add(InlineKeyboardButton('<<<', callback_data='prev'))
+        markup.add(
+            InlineKeyboardButton('фильтры', callback_data='back'),
+            InlineKeyboardButton('❤️', callback_data='like')
+            )
+        if current < max:
+            markup.add(InlineKeyboardButton('>>>', callback_data='next'))
         return markup

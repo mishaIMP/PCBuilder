@@ -49,6 +49,8 @@ class InfoResource(Resource):
     def get(self, info_id=None):
         args = args_parser.parse_args()
         params = args['params']
+        if params == 'all':
+            params = None
         if not is_valid_params(params):
             abort(404)
 
@@ -56,24 +58,28 @@ class InfoResource(Resource):
             public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
             result = convert_info(public_info, params)
             return result
-
-        query = PublicInfo.query
-        if args['min_price']:
-            query = query.filter(PublicInfo.total_price >= args['min_price'])
-        if args['max_price']:
-            query = query.filter(PublicInfo.total_price <= args['max_price'])
-        if args['author']:
-            query = query.filter(PublicInfo.author == args['author'])
-        if args['title']:
-            query = query.filter(PublicInfo.title.like('%' + args['title'] + '%'))
+        
         if args['user_id']:
-            query = query.filter(PublicInfo.user_id == args['user_id'])
-        if args['limit']:
-            query = query.limit(args['limit'])
-        if args['date']:
-            query = query.filter(PublicInfo.date >= args['date'])
+            user = db.one_or_404(db.select(User).filter_by(id=args['user_id']))
+            results = user.public_info
+        else:            
+            query = PublicInfo.query
+            if args['min_price']:
+                query = query.filter(PublicInfo.total_price >= args['min_price'])
+            if args['max_price']:
+                query = query.filter(PublicInfo.total_price <= args['max_price'])
+            if args['author']:
+                query = query.filter(PublicInfo.author == args['author'])
+            if args['title']:
+                query = query.filter(PublicInfo.title.like('%' + args['title'] + '%'))
+            if args['user_id']:
+                query = query.filter(PublicInfo.user_id == args['user_id'])
+            if args['limit']:
+                query = query.limit(args['limit'])
+            if args['date']:
+                query = query.filter(PublicInfo.date >= args['date'])
 
-        results = query.all()
+            results = query.all()
         results = convert_info(results, params)
 
         return results

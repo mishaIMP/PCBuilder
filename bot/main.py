@@ -3,6 +3,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from dotenv import load_dotenv
 import os
+from bot.helper import get_comps
+from bot.states import MyState
 
 from helper import show_pc, calculate_total_price
 from states import AddState, Main, FindState
@@ -41,12 +43,12 @@ async def start(message: types.Message, state: FSMContext):
 async def command_add(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await state.reset_data()
-    if 'info_id' in data or 'comp_id' in data:
-        if not api.delete_pc(comp_id=data['comp_id'], info_id=data['info_id']):
+    if 'info_id' in data:
+        if not api.delete_pc(info_id=data['info_id']):
             await message.answer('произошла ошибка')
     res = api.init_pc(data['user_id'])
     if res:
-        await state.update_data(comp_id=res['comp_id'], info_id=res['info_id'])
+        await state.update_data(**res)
     else:
         await message.answer('произошла ошибка')
     await state.update_data(user_id=data['user_id'], comps=[])
@@ -59,16 +61,10 @@ async def command_add(message: types.Message, state: FSMContext):
 async def command_find(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await state.reset_data()
-    if 'info_id' in data or 'comp_id' in data:
-        if not api.delete_pc(comp_id=data['comp_id'], info_id=data['info_id']):
+    if 'info_id' in data:
+        if not api.delete_pc(info_id=data['info_id']):
             await message.answer('произошла ошибка')
-    filters = {
-        'min_price': None,
-        'max_price': None,
-        'author': None,
-        'title': None,
-        'date': None
-    }
+    filters = {'min_price': None, 'max_price': None, 'author': None, 'title': None, 'date': None}
     await state.update_data(user_id=data['user_id'], filters=filters)
     await message.answer('добавь фильтры', reply_markup=buttons.filter_markup(filters))
     await FindState.choose_filters.set()
@@ -78,11 +74,21 @@ async def command_find(message: types.Message, state: FSMContext):
 async def command_my(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await state.reset_data()
-    if 'info_id' in data or 'comp_id' in data:
-        if not api.delete_pc(comp_id=data['comp_id'], info_id=data['info_id']):
+    if 'info_id' in data:
+        if not api.delete_pc(info_id=data['info_id']):
             await message.answer('произошла ошибка')
+    res = api.get_title_and_id_list({'user_id': data['user_id']})
+    if not res:
+        await message.answer('произошла ошибка', reply_markup=buttons.back_markup())
+    elif not res['count']:
+        await message.answer('сборок нету(((', reply_markup=buttons.back_markup())
+    else:
+        markup = buttons.my_assemblies(res['data'])
+        await message.answer('вот твои сборки', reply_markup=markup)
+        await state.update_data(assembly_list=res['data'])
     await state.update_data(user_id=data['user_id'])
-
+    await MyState.choose_assembly.set()
+    
 
 @dp.callback_query_handler(state=Main.choose_mode)
 async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
@@ -93,7 +99,7 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
         data = await state.get_data()
         res = api.init_pc(data['user_id'])
         if res:
-            await state.update_data(comp_id=res['comp_id'], user_id=data['user_id'], info_id=res['info_id'], comps=[])
+            await state.update_data(user_id=data['user_id'], info_id=res['info_id'], comps=[])
             await AddState.add_comp.set()
         else:
             await callback.answer('произошла ошибка')
@@ -102,10 +108,20 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
         await state.update_data(filters=filters)
         await callback.message.edit_text('добавь фильтры', reply_markup=buttons.filter_markup(filters))
         await FindState.choose_filters.set()
-    else:
-        pass
-
-
+    elif callback.data == 'my':
+        data = await state.get_data()
+        res = api.get_title_and_id_list({'user_id': data['user_id']})
+        if not res:
+            await callback.message.answer('произошла ошибка', reply_markup=buttons.back_markup())
+        elif not res['count']:
+            await callback.message.answer('сборок нету(((', reply_markup=buttons.back_markup())
+        else:
+            markup = buttons.my_assemblies(res['data'])
+            await callback.message.answer('вот твои сборки', reply_markup=markup)
+            await state.update_data(assembly_list=res['data'])
+        await MyState.choose_assembly.set()
+            
+        
 @dp.callback_query_handler(lambda c: c.data != 'additional', state=AddState.add_comp)
 async def add_comp(callback: types.CallbackQuery, state: FSMContext):
     mode = callback.data
@@ -115,28 +131,35 @@ async def add_comp(callback: types.CallbackQuery, state: FSMContext):
         data = await state.get_data()
         await state.reset_data()
         await state.update_data(user_id=data['user_id'])
-        if not api.delete_pc(comp_id=data['comp_id'], info_id=data['info_id']):
+        if not api.delete_pc(info_id=data['info_id']):
             await callback.answer('произошла ошибка')
         await Main.choose_mode.set()
     elif mode == 'save':
         await callback.message.edit_text('сборка сохранена')
         data = await state.get_data()
-        res = api.get_components(data['comp_id'])
+        res = api.get_components(info_id=data['info_id'])
         if not res:
             await callback.answer('произошла ошибка')
         else:
             await state.update_data(total_price=calculate_total_price(res))
             await callback.message.answer(text=show_pc(res), parse_mode='html',
                                           reply_markup=buttons.build_final_markup(callback.from_user.username))
-            await AddState.final_stage.set()
+            await AddState.save_pc.set()
+    elif mode == 'edit_save':
+        pass
     elif mode in ('title', 'edit_title'):
         await callback.message.edit_text('введи название сборки', reply_markup=buttons.back_markup())
         await AddState.get_title.set()
     elif mode.startswith('edit_'):
         data = await state.get_data()
-        info = api.get_components(comp_id=data['comp_id'], comp=mode[5:])
-        if info:
-            component = info['additional'][0] if 'additional' in info else info[mode[5:]]
+        res = api.get_components(info_id=data['info_id'], comp=mode[5:])
+        if res:
+            if res['comps']['count']:
+                component = res['comps']['components'][0] 
+            elif res['additional']['count']:
+                component = res['additional'][0]
+            else:
+                component = {'model': '-', 'price': '-', 'amount': '-', 'link': ''}
             text = f'модель: {component["model"]}\nцена: {component["price"]}\nколичество: {component["amount"]}\n'
             text += f"ссылка: {component['link']}\n" if component['link'] else ''
             await callback.message.edit_text(text + 'изменить', reply_markup=buttons.add_info_markup(component))
@@ -180,15 +203,14 @@ async def get_link(message: types.Message, state: FSMContext):
     link = message.text
     data = await state.get_data()
     amount = data.get('amount', 1)
-    res = api.add_comp(comp=data['comp'], model=data['model'], price=data['price'], comp_id=data['comp_id'],
-                       amount=amount, link=link)
+    res = api.add_component(comp=data['comp'], model=data['model'], price=data['price'], amount=amount, link=link)
     if not res:
         await message.answer('произошла ошибка')
     data['comps'].append(data['comp'])
     await state.reset_data()
     data = dict(
         map(lambda k: (k, data[k]),
-            filter(lambda k: k in ('user_id', 'info_id', 'comp_id', 'comps'), data)))
+            filter(lambda k: k in ('user_id', 'info_id', 'comps', 'assembly_list'), data)))
     await state.update_data(data)
     markup = buttons.build_comp_markup(added=data['comps'])
     await message.answer('изменить сборку', reply_markup=markup)
@@ -204,15 +226,14 @@ async def skip_amount(callback: types.CallbackQuery):
 @dp.callback_query_handler(state=AddState.get_link, text='skip')
 async def skip_link(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    res = api.add_comp(comp=data['comp'], model=data['model'], price=data['price'], comp_id=data['comp_id'],
-                       amount=data.get('amount', 1))
+    res = api.add_component(comp=data['comp'], model=data['model'], price=data['price'], amount=data.get('amount', 1))
     if not res:
         await callback.message.answer('произошла ошибка')
     data['comps'].append(data['comp'])
     await state.reset_data()
     data = dict(
         map(lambda k: (k, data[k]),
-            filter(lambda k: k in ('user_id', 'info_id', 'comp_id', 'comps'), data)))
+            filter(lambda k: k in ('user_id', 'info_id', 'comps', 'assembly_list'), data)))
     await state.update_data(data)
     markup = buttons.build_comp_markup(added=data['comps'])
     await callback.message.edit_text('изменить сборку', reply_markup=markup)
@@ -278,19 +299,19 @@ async def add_info(callback: types.CallbackQuery, state: FSMContext):
 
         if callback_data == 'delete':
 
-            if not api.delete_pc(comp_id=data['comp_id'], comp=data['comp']):
+            if not api.delete_pc(info_id=data['info_id'], comp=data['comp']):
                 await callback.answer('произошла ошибка')
             if 'comps' in data:
                 data['comps'].remove(data['comp'])
 
         elif callback_data == 'save':
-            if not api.add_comp(comp=data['comp'], model=data['model'], price=data['price'],
-                                amount=data.get('amount', 1), comp_id=data['comp_id'], link=data.get('link', None)):
+            if not api.edit_component(comp=data['comp'], model=data['model'], price=data['price'],
+                                amount=data.get('amount', 1), link=data.get('link', None)):
                 await callback.answer('произошла ошибка')
 
         await state.update_data(dict(
             map(lambda k: (k, data[k]),
-                filter(lambda k: k in ('user_id', 'info_id', 'comp_id', 'comps'), data))))
+                filter(lambda k: k in ('user_id', 'info_id', 'comps', 'assembly_list'), data))))
         markup = buttons.build_comp_markup(added=data['comps'])
         await callback.message.edit_text('изменить сборку', reply_markup=markup)
         await AddState.add_comp.set()
@@ -317,7 +338,7 @@ async def get_info(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(state=[AddState.edit_model, AddState.edit_price, AddState.edit_amount, AddState.edit_link])
 async def back_to_info_menu(callback: types.CallbackQuery, state: FSMContext):
-    # callback.data == 'back':
+    # callback.data == 'back'
     data = await state.get_data()
     text = f'модель: {data["model"]}\nцена: {data["price"]}\nколичество: {data["amount"]}\n'
     text += f'ссылка: {data["link"]}\n' if data['link'] else ''
@@ -325,7 +346,7 @@ async def back_to_info_menu(callback: types.CallbackQuery, state: FSMContext):
     await AddState.add_info.set()
 
 
-@dp.callback_query_handler(state=AddState.final_stage)
+@dp.callback_query_handler(state=AddState.save_pc)
 async def final_choice(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if callback.data == 'change':
@@ -382,12 +403,50 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
     else:
         await callback.message.edit_text('поиск...')
         data = await state.get_data()
-        res = api.get_pc_list(data['filters'])
+        res = api.get_id_list(data['filters'])
         if not res:
-            await callback.message.edit_text('ничего не найдено😔😔😔', reply_markup=buttons.back_markup())
+            await callback.message.answer('произошла ошибка', reply_markup=buttons.back_markup())
+        elif not res['count']:
+            await callback.message.answer('ничего не найдено😔😔😔', reply_markup=buttons.back_markup())
         else:
-            pass
+            await state.update_data(assembly_list=res['data'], current=0, max=res['count'])
+            pc = api.get_whole_pc(info_id=res['data'][0]['id'])
+            if not pc:
+                await callback.answer('произошла ошибка') 
+            else:
+                await callback.message.edit_text(show_pc(pc), reply_markup=buttons.show_pc_markup(0, res['count']))
+                await state.update_data(likes=pc['info']['likes'])
+            
+        await FindState.show_pc.set()
 
+
+@dp.callback_query_handler(state=FindState.show_pc)
+async def show_pc(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    if callback.data == 'back':
+        await state.reset_data()
+        await callback.message.edit_text('добавь фильтры', reply_markup=buttons.filter_markup(data['filters']))
+        await state.update_data(filters=data['filters'], user_id=data['user_id'])
+        await FindState.choose_filters.set()
+    else:
+        info_id = data['assembly_list'][data['current']]['id']
+        if callback.data == 'prev':
+            data['current'] -= 1
+            await state.update_data(data)
+        elif callback.data == 'next':
+            data['current'] += 1
+            await state.update_data(data)
+        elif callback.data == 'like':
+            likes = data['likes'] + 1
+            if not api.like(info_id=info_id, likes=likes):
+                await callback.answer('произошла ошибка')
+        pc = api.get_whole_pc(info_id=info_id)
+        if not pc:
+            await callback.answer('произошла ошибка') 
+        else:
+            await callback.message.edit_text(show_pc(pc), reply_markup=buttons.show_pc_markup(data['current'], data['max']))
+            await state.update_data(likes=pc['info']['likes'])
+        
 
 @dp.message_handler(state=[FindState.get_min_price, FindState.get_max_price])
 async def get_min_and_max_price(message: types.Message, state: FSMContext):
@@ -413,7 +472,7 @@ async def get_author(message: types.Message, state: FSMContext):
     await FindState.choose_filters.set()
 
 
-@dp.message_handler(state=FindState.get_author)
+@dp.message_handler(state=FindState.get_title)
 async def get_title_to_find(message: types.Message, state: FSMContext):
     title = message.text
     data = await state.get_data()
@@ -433,4 +492,43 @@ async def get_date(callback: types.CallbackQuery, state: FSMContext):
     await FindState.choose_filters.set()
 
 
+@dp.callback_query_handler(state=MyState.choose_assembly)
+async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
+    if callback.data == 'back':
+        text = '/find - Найти сборку 🔍\n/add - Добавить сборку ➕\n/my - мои сборки 🖥'
+        await callback.message.edit_text(text, reply_markup=buttons.start_markup())
+        data = await state.get_data()
+        await state.reset_data()
+        await state.update_data(user_id=data['user_id'])
+        await state.reset_state()
+    elif callback.data.startswith('assembly_'):
+        info_id = int(callback.data[9:])
+        res = api.get_components(info_id=info_id)
+        if not res:
+            await callback.answer('произошла ошибка')
+        else:
+            await state.update_data(total_price=calculate_total_price(res))
+            await callback.message.edit_text(text=show_pc(res), parse_mode='html',
+                                          reply_markup=buttons.build_final_markup(callback.from_user.username, True))
+            await MyState.show_pc.set()
+
+
+@dp.callback_query_handler(state=MyState.show_pc)
+async def change_assembly(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()   
+    if callback.data == 'back':
+        markup = buttons.my_assemblies(data['assembly_list'])
+        await callback.message.edit_text('вот твои сборки', reply_markup=markup)
+        await MyState.choose_assembly.set()
+    elif callback.data == 'change':
+        res = api.get_components(info_id=data['info_id'])
+        if not res:
+            await callback.answer('произошла ошибка')
+        else:
+            comps = get_comps(data=data)
+            await state.update_data(comps=comps)
+            markup = buttons.build_comp_markup(added=comps, edit=True)
+            await callback.message.edit_text('изменить сборку', reply_markup=markup)
+            await AddState.add_comp.set()
+        
 executor.start_polling(dp, skip_updates=True)

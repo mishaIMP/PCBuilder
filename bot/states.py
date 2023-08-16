@@ -19,7 +19,7 @@ class AddState(StatesGroup):
     edit_link = State()
     get_title = State()
     add_info = State()
-    final_stage = State()
+    save_pc = State()
 
 
 class FindState(StatesGroup):
@@ -29,3 +29,9 @@ class FindState(StatesGroup):
     get_author = State()
     get_title = State()
     get_date = State()
+    show_pc = State()
+    
+
+class MyState(StatesGroup):
+    choose_assembly = State()
+    show_pc = State()

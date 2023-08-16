@@ -21,7 +21,7 @@ def create_app(config_filename):
     comp_api = Api(comp_blueprint)
 
     users_api.add_resource(UsersResource, '/users', '/users/<int:user_id>')
-    comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:comp_id>')
+    comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:info_id>')
     comp_api.add_resource(InfoResource, '/info', '/info/<int:info_id>')
 
     app.register_blueprint(users_blueprint)
