@@ -3,7 +3,7 @@ from datetime import datetime
 from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 
 from API.common.helper import is_valid_params, convert_info
-from API.common.model import db, User, Components, Prices, Amounts, Links, Additional, PublicInfo
+from API.common.model import db, User, PublicInfo
 
 public_info_fields = {
     'id': fields.Integer,
@@ -71,7 +71,8 @@ class InfoResource(Resource):
             if args['author']:
                 query = query.filter(PublicInfo.author == args['author'])
             if args['title']:
-                query = query.filter(PublicInfo.title.like('%' + args['title'] + '%'))
+                for word in args['title'].split():
+                    query = query.filter(PublicInfo.title.like('%' + word + '%'))
             if args['user_id']:
                 query = query.filter(PublicInfo.user_id == args['user_id'])
             if args['limit']:

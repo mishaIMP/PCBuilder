@@ -14,7 +14,7 @@ component_parser.add_argument('amount', type=str, required=False)
 component_parser.add_argument('link', type=str)
 
 post_args_parser = reqparse.RequestParser()
-post_args_parser.add_argument('all_comp', type=bool, required=False, location='args')
+post_args_parser.add_argument('all_comps', type=bool, required=False, location='args')
 
 args_parser = reqparse.RequestParser()
 args_parser.add_argument('comps', type=str, required=False, location='args')
@@ -32,6 +32,7 @@ list_fields = {
     'components': fields.Nested(component_fields)
 }
 
+
 class ComponentsResource(Resource):
     def get(self, info_id=None):
         if info_id:
@@ -39,6 +40,10 @@ class ComponentsResource(Resource):
             params = args_parser.parse_args()['comps']
             components = info.components
             additional = info.additional_components
+
+            # if not components and not additional:
+            #     abort(404)
+
             if params:
                 components = tuple(filter(lambda c: c.component in params.split('-'), components))
                 additional = tuple(filter(lambda c: c.component in params.split('-'), additional))
@@ -58,53 +63,40 @@ class ComponentsResource(Resource):
     def post(self, info_id=None):
         if not info_id:
             abort(404)
-        all_comps = post_args_parser.parse_args()['all_comps']
-        public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=args['info_id']))
-        if all_comps:
-            data = request.form.get('data', None)
-            if not is_valid_request_data(data):
-                abort(403)
-            for pc in data:
-                if pc['component'] in COMPONENTS:
-                    component = Components(public_info_id=info_id, **pc)
-                else:
-                    component = AdditionalComponents(public_info_id=info_id, **pc)
-                db.session.add(component)           
-            
+        args = component_parser.parse_args()
+        if args['component'] in COMPONENTS:
+            component = Components(public_info_id=info_id, **args)
         else:
-            args = component_parser.parse_args()
-            if args['component'] in COMPONENTS:
-                component = Components(public_info_id=info_id, **args)
-            else:
-                component = AdditionalComponents(public_info_id=info_id, **args)
-            db.session.add(component)
+            component = AdditionalComponents(public_info_id=info_id, **args)
+        db.session.add(component)
         db.session.commit()
         return {'status': 'created'}, 201
     
     def put(self, info_id=None):
-        info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
-        data = request.form.get('data', None)
-        if not is_valid_request_data(data=data):
-            abort(403)
-        components = info.components
-        additional = info.additional_components
-        for pc in data:
-            if pc['component'] in COMPONENTS:
-                component = list(filter(lambda c: c.component == pc['component'], components))
-            else:
-                component = list(filter(lambda c: c.component == pc['component'], additional))
-                    
-            if component:
-                for item in pc:
-                    component[0].__setattr__(item, pc[item])
-            else:
-                abort(404)
-                
-        db.session.commit()
+        # info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        # data = request.form.get('data', None)
+        # if not is_valid_request_data(data=data):
+        #     abort(403)
+        # components = info.components
+        # additional = info.additional_components
+        # for pc in data:
+        #     if pc['component'] in COMPONENTS:
+        #         component = list(filter(lambda c: c.component == pc['component'], components))
+        #     else:
+        #         component = list(filter(lambda c: c.component == pc['component'], additional))
+        #
+        #     if component:
+        #         for item in pc:
+        #             component[0].__setattr__(item, pc[item])
+        #     else:
+        #         abort(404)
+        #
+        # db.session.commit()
         return {}, 204
 
     @marshal_with(component_fields)
     def patch(self, info_id=None):
+        component = None
         if not info_id:
             abort(404)
         args = component_parser.parse_args()
@@ -131,22 +123,27 @@ class ComponentsResource(Resource):
     def delete(self, info_id=None):
         if not info_id:
             abort(404)
+
         info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
         components = info.components
         additional = info.additional_components
+
+        if not components and not additional:
+            abort(404)
+
         params = args_parser.parse_args().get('comps')
         if not params:
-            params = COMPONENTS
+            params = ['$all']
         else:
             params = params.split('-')
         if components:
             for comp in components:
-                if comp.component in params:
+                if comp.component in params or params[0] == '$all':
                     db.session.delete(comp)
         
         if additional:
             for comp in additional:
-                if comp.component in params:
+                if comp.component in params or params[0] == '$all':
                     db.session.delete(comp)
         db.session.commit()
         return {'status': 'deleted'}, 202

@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import date
 from flask_migrate import Migrate
 
 
@@ -23,7 +23,7 @@ class PublicInfo(db.Model):
     likes = db.Column(db.Integer, default=0)
     total_price = db.Column(db.Integer, nullable=True)
     author = db.Column(db.String(255), nullable=True)
-    date = db.Column(db.DateTime, default=datetime.utcnow)  # Date
+    date = db.Column(db.Date, default=date.today())
     title = db.Column(db.String(50), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     components = db.relationship('Components', backref='public_info', lazy=True, passive_deletes=True)
@@ -44,6 +44,7 @@ class Components(db.Model):
     
     def __repr__(self):
         return str(self.__dict__)
+
 
 class AdditionalComponents(db.Model):
     id = db.Column(db.Integer, primary_key=True)

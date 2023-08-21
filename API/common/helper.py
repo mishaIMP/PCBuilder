@@ -1,3 +1,7 @@
+from typing import Iterable, Sized
+
+from sqlalchemy_utils import InstrumentedList
+
 from API.common.model import Components, PublicInfo
 
 COMPONENTS = ['cpu', 'gpu', 'motherboard', 'ram', 'case', 'storage', 'psu', 'culler', 'fan']
@@ -11,7 +15,7 @@ def is_valid_params(params: str | None) -> bool:
     return True
 
 
-def convert_info(tables: list[PublicInfo] | PublicInfo, params: str | None) -> None | dict:
+def convert_info(rows: InstrumentedList | PublicInfo, params: str | None) -> None | dict:
     if params:
         params = params.split('-')
     else:
@@ -26,17 +30,17 @@ def convert_info(tables: list[PublicInfo] | PublicInfo, params: str | None) -> N
                 res[param] = table_.__getattribute__(param)
         return res
 
-    if type(tables) == list:
-        result = {'count': len(tables), 'data': []}
-        for table in tables:
-            result['data'].append(convert(table))
+    if isinstance(rows, (Iterable, Sized)):
+        result = {'count': len(rows), 'data': []}
+        for row in rows:
+            result['data'].append(convert(row))
     else:
-        result = convert(tables)
+        result = convert(rows)
 
     return result
 
 
-def is_valid_request_data(data: list) -> bool:
+def is_valid_request_data(data: list | None) -> bool:
     if not data or type(data) != list:
         return False
     for pc in data:
