@@ -12,10 +12,9 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
     markup = Buttons.build_comp_markup([])
     await callback.message.edit_text('добавить комплектующие', reply_markup=markup)
     await state.update_data()
-    data = await state.get_data()
-    res = api.init_pc(data['user_id'])
+    res = api.init_pc()
     if res:
-        await state.update_data(user_id=data['user_id'], info_id=res['info_id'], comps=[])
+        await state.update_data(info_id=res, comps=[])
         await AddState.add_comp.set()
     else:
         await callback.answer(ERROR_TEXT)
@@ -27,15 +26,14 @@ async def command_add(message: types.Message, state: FSMContext):
     if 'info_id' in data:
         if not api.delete_pc(info_id=data['info_id']):
             await message.answer(ERROR_TEXT)
-    res = api.init_pc(data['user_id'])
+    res = api.init_pc()
     if res:
-        await state.update_data(**res)
+        await state.update_data(info_id=res, comps=[])
+        markup = Buttons.build_comp_markup([])
+        await message.answer('добавь комплектующие', reply_markup=markup)
+        await AddState.add_comp.set()
     else:
         await message.answer(ERROR_TEXT)
-    await state.update_data(user_id=data['user_id'], comps=[])
-    markup = Buttons.build_comp_markup([])
-    await message.answer('добавь комплектующие', reply_markup=markup)
-    await AddState.add_comp.set()
 
 
 async def add_component(callback: types.CallbackQuery, state: FSMContext):
@@ -44,7 +42,6 @@ async def add_component(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
         data = await state.get_data()
         await state.reset_data()
-        await state.update_data(user_id=data['user_id'])
         if not api.delete_pc(info_id=data['info_id']):
             await callback.answer(ERROR_TEXT)
         await MainState.choose_mode.set()
@@ -118,10 +115,11 @@ async def get_link(message: types.Message, state: FSMContext):
         await message.answer(ERROR_TEXT)
     data['comps'].append(data['comp'])
     await state.reset_data()
-    data = dict(
-        map(lambda k: (k, data[k]),
-            filter(lambda k: k in ('user_id', 'info_id', 'comps', 'assembly_list'), data)))
-    await state.update_data(data)
+    data_ = {}
+    for item in data:
+        if item in ('info_id', 'comps', 'assembly_list'):
+            data_[item] = data[item]
+    await state.update_data(data_)
     markup = Buttons.build_comp_markup(added=data['comps'])
     await message.answer('изменить сборку', reply_markup=markup)
     await AddState.add_comp.set()
@@ -140,10 +138,11 @@ async def skip_link(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.answer(ERROR_TEXT)
     data['comps'].append(data['comp'])
     await state.reset_data()
-    data = dict(
-        map(lambda k: (k, data[k]),
-            filter(lambda k: k in ('user_id', 'info_id', 'comps', 'assembly_list'), data)))
-    await state.update_data(data)
+    data_ = {}
+    for item in data:
+        if item in ('info_id', 'comps', 'assembly_list'):
+            data_[item] = data[item]
+    await state.update_data(data_)
     markup = Buttons.build_comp_markup(added=data['comps'])
     await callback.message.edit_text('изменить сборку', reply_markup=markup)
     await AddState.add_comp.set()
@@ -213,10 +212,11 @@ async def add_info(callback: types.CallbackQuery, state: FSMContext):
                                       amount=data.get('amount', 1), link=data.get('link', None),
                                       info_id=data['info_id']):
                 await callback.answer(ERROR_TEXT)
-
-        await state.update_data(dict(
-            map(lambda k: (k, data[k]),
-                filter(lambda k: k in ('user_id', 'info_id', 'comps', 'assembly_list'), data))))
+        data_ = {}
+        for item in data:
+            if item in ('info_id', 'comps', 'assembly_list'):
+                data_[item] = data[item]
+        await state.update_data(data_)
         markup = Buttons.build_comp_markup(added=data['comps'])
         await callback.message.edit_text('изменить сборку', reply_markup=markup)
         await AddState.add_comp.set()
@@ -271,9 +271,7 @@ async def select_privacy(callback: types.CallbackQuery, state: FSMContext):
                 await callback.answer(ERROR_TEXT)
         await callback.message.edit_text('сборка сохранена')
         await callback.message.answer(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
-        data = await state.get_data()
         await state.reset_data()
-        await state.update_data(user_id=data['user_id'])
         await MainState.choose_mode.set()
 
 

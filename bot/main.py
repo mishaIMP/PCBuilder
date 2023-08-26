@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 
 from bot.common.states import MainState
 from bot.common.imports import dp, api
-from bot.common.helper import MAIN_MENU_TEXT
+from bot.common.helper import MAIN_MENU_TEXT, ERROR_TEXT
 from bot.common.buttons import Buttons
 
 
@@ -16,19 +16,11 @@ def main():
 
     @dp.message_handler(commands='start')
     async def start(message: types.Message, state: FSMContext):
-        await message.answer(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
-        data = await state.get_data()
-        await state.reset_data()
-        if 'user_id' not in data:
-            user = api.user_exists(message.from_user.username)
-            user_id = 1
-            if user:
-                user_id = user['id']
-            else:
-                user = api.add_new_user(message.from_user.username)
-                if user:
-                    user_id = user['id']
-            await state.update_data(user_id=user_id)
+        if not api.login_or_create_user(message.from_user.username, str(message.from_user.id)):
+            await message.answer(ERROR_TEXT)
+        else:
+            await message.answer(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
+            await state.reset_data()
         await MainState.choose_mode.set()
 
     executor.start_polling(dp, skip_updates=True)

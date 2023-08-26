@@ -1,9 +1,8 @@
 from datetime import datetime
-
 from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 
 from API.common.helper import is_valid_params, convert_info
-from API.common.model import db, User, PublicInfo
+from API.common.model import db, User, PublicInfo, auth_token
 
 public_info_fields = {
     'id': fields.Integer,
@@ -11,7 +10,7 @@ public_info_fields = {
     'total_price': fields.Integer,
     'author': fields.String,
     'title': fields.String,
-    # 'date': fields.DateTime,
+    'date': fields.String,
     'user_id': fields.Integer
 }
 
@@ -25,7 +24,7 @@ args_parser.add_argument('min_price', type=int, required=False, location='args')
 args_parser.add_argument('min_price', type=int, required=False, location='args')
 args_parser.add_argument('max_price', type=int, required=False, location='args')
 args_parser.add_argument('author', type=str, required=False, location='args')
-args_parser.add_argument('user_id', type=int, required=False, location='args')
+args_parser.add_argument('user', type=bool, required=False, location='args')
 args_parser.add_argument('limit', type=int, required=False, location='args')
 args_parser.add_argument('date', type=lambda x: datetime.strptime(x, '%Y-%m-%d'), required=False,
                          location='args')
@@ -38,15 +37,14 @@ parser.add_argument('author', type=str, required=False)
 parser.add_argument('likes', type=int, required=False)
 parser.add_argument('title', type=str, required=False)
 
-post_parser = parser.copy()
-post_parser.add_argument('user_id', type=int, required=True, help='comp is required')
-
 params_parser = reqparse.RequestParser()
 params_parser.add_argument('params', type=str, required=False, location='args')
 
 
 class InfoResource(Resource):
-    def get(self, info_id=None):
+    @staticmethod
+    @auth_token.load_user_id
+    def get(user_id, info_id=None):
         args = args_parser.parse_args()
         params = args['params']
         if params == 'all':
@@ -59,10 +57,13 @@ class InfoResource(Resource):
             result = convert_info(public_info, params)
             return result
         
-        if args['user_id']:
-            user = db.one_or_404(db.select(User).filter_by(id=args['user_id']))
+        if args['user']:
+            if not user_id:
+                abort(404)
+            user = db.one_or_404(db.select(User).filter_by(id=user_id))
             results = user.public_info
-        else:            
+
+        else:
             query = PublicInfo.query
             if args['min_price']:
                 query = query.filter(PublicInfo.total_price >= args['min_price'])
@@ -73,8 +74,6 @@ class InfoResource(Resource):
             if args['title']:
                 for word in args['title'].split():
                     query = query.filter(PublicInfo.title.like('%' + word + '%'))
-            if args['user_id']:
-                query = query.filter(PublicInfo.user_id == args['user_id'])
             if args['limit']:
                 query = query.limit(args['limit'])
             if args['date']:
@@ -85,18 +84,24 @@ class InfoResource(Resource):
 
         return results
 
+    @staticmethod
     @marshal_with(public_info_fields)
-    def post(self):
-        args = post_parser.parse_args()
-        public_info = PublicInfo(**args)
+    @auth_token
+    def post(user):
+        args = parser.parse_args()
+        public_info = PublicInfo(user_id=user.id, **args)
         db.session.add(public_info)
         db.session.commit()
         return public_info, 201
 
+    @staticmethod
     @marshal_with(public_info_fields)
-    def put(self, info_id=None):
+    @auth_token
+    def put(user, info_id=None):
         if not info_id:
             abort(404)
+        if not user.is_admin and not user.is_owner(info_id):
+            abort(403)
         args = parser.parse_args()
         public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
         for key, val in args.items():
@@ -104,10 +109,14 @@ class InfoResource(Resource):
         db.session.commit()
         return public_info, 201
 
+    @staticmethod
     @marshal_with(public_info_fields)
-    def patch(self, info_id=None):
+    @auth_token
+    def patch(user, info_id=None):
         if not info_id:
             abort(404)
+        if not user.is_admin and not user.is_owner(info_id):
+            abort(403)
         args = parser.parse_args()
         public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
         for key, val in args.items():
@@ -116,19 +125,23 @@ class InfoResource(Resource):
         db.session.commit()
         return public_info, 204
 
-    def delete(self, info_id=None):
+    @staticmethod
+    @auth_token
+    def delete(user, info_id=None):
         if not info_id:
             abort(404)
-        params = params_parser.parse_args()['params']
-        public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
-        if params:
-            if not is_valid_params(params):
-                abort(404)
+        if user.is_admin or user.is_owner(info_id):
+            params = params_parser.parse_args()['params']
+            public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+            if params:
+                if not is_valid_params(params):
+                    abort(404)
 
-            for param in params.split('-'):
-                public_info.__setattr__(param, None)
+                for param in params.split('-'):
+                    public_info.__setattr__(param, None)
 
-        else:
-            db.session.delete(public_info)
-        db.session.commit()
-        return {'status': 'ok'}, 202
+            else:
+                db.session.delete(public_info)
+            db.session.commit()
+            return {'status': 'ok'}, 202
+        abort(403)

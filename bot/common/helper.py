@@ -1,5 +1,3 @@
-import aiogram.utils.markdown as markdown
-
 MAIN_MENU_TEXT = '/find - 🔍Найти сборку\n/add - ➕Добавить сборку\n/my - 🖥мои сборки'
 ERROR_TEXT = 'произошла ошибка'
 
@@ -9,28 +7,25 @@ def display_pc(data: dict | dict) -> str:
     info = True if 'info' in data else False
         
     text = f"*{data['info']['title']}*\n" if info and data['info']['title'] else ''
-     
-    for comp in data['comps']['components']:
-        if comp['model']:
-            if comp['link']:
-                model = f'[{comp["model"].upper()}]({comp["link"]})'
+
+    def show_component(component):
+        if component['model']:
+            if component['link']:
+                model = f'[{component["model"].upper()}]({component["link"]})'
             else:
                 model = comp["model"].upper()
-            amount = f'\[x{comp["amount"]}\]' if comp['amount'] > 1 else ''
-            text += f'*{model}* \- *{comp["price"]}* {amount}\n'
+            amount = f' \[x{component["amount"]}\]' if component['amount'] > 1 else ''
+            return f'{component["component"].upper()}: *{model} \- {component["price"]}*{amount}\n'
+
+    for comp in data['comps']['components']:
+        text += show_component(comp)
     if data['additional']['count']:
         text += f'_{"дополнительные комплектующие:"}_\n'
         for comp in data['additional']['components']:
-            if comp['model']:
-                if comp['link']:
-                    model = f'[{comp["model"].upper()}]({comp["link"]})'
-                else:
-                    model = comp["model"].upper()
-                amount = f'\[x{comp["amount"]}\]' if comp['amount'] > 1 else ''
-                text += f'{comp["component"].upper()}: *{model}* \- *{comp["price"]}* {amount}\n'
+            text += show_component(comp)
             
     if info:
-        text += f"всего \- *{data['info']['total_price']}* \t\t\t\t ❤{data['info']['likes']}❤\n"
+        text += f"__*всего \- {data['info']['total_price']}*__ \t\t\t\t ❤{data['info']['likes']}❤\n"
         if data['info']['author']:
             text += f'by @{data["info"]["author"]}' 
         
@@ -51,7 +46,6 @@ def calculate_total_price(data: dict | dict) -> int:
 
 def get_comps(data: dict) -> list:
     components = []
-    print(data)
     for comp in data['comps']['components']:
         components.append(comp['component'])
     if data['additional']['count']:

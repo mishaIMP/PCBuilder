@@ -1,8 +1,8 @@
 from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
-from flask import Blueprint, request
+from flask import Blueprint
 
-from API.common.helper import COMPONENTS, is_valid_request_data
-from API.common.model import AdditionalComponents, db, Components,  PublicInfo
+from API.common.helper import COMPONENTS
+from API.common.model import AdditionalComponents, db, Components, PublicInfo, User, auth_token
 
 comp_blueprint = Blueprint('components', __name__)
 
@@ -34,15 +34,16 @@ list_fields = {
 
 
 class ComponentsResource(Resource):
-    def get(self, info_id=None):
+    @staticmethod
+    def get(info_id=None):
         if info_id:
             info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
             params = args_parser.parse_args()['comps']
             components = info.components
             additional = info.additional_components
 
-            # if not components and not additional:
-            #     abort(404)
+            if not components and not additional:
+                abort(404)
 
             if params:
                 components = tuple(filter(lambda c: c.component in params.split('-'), components))
@@ -60,10 +61,14 @@ class ComponentsResource(Resource):
 
         return abort(404)
 
-    def post(self, info_id=None):
+    @staticmethod
+    @auth_token
+    def post(user, info_id=None):
         if not info_id:
             abort(404)
-        args = component_parser.parse_args()
+        if not user.is_admin and not user.is_owner(info_id):
+            abort(403)
+        args = component_parser.parse_args(strict=True)
         if args['component'] in COMPONENTS:
             component = Components(public_info_id=info_id, **args)
         else:
@@ -71,48 +76,29 @@ class ComponentsResource(Resource):
         db.session.add(component)
         db.session.commit()
         return {'status': 'created'}, 201
-    
-    def put(self, info_id=None):
-        # info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
-        # data = request.form.get('data', None)
-        # if not is_valid_request_data(data=data):
-        #     abort(403)
-        # components = info.components
-        # additional = info.additional_components
-        # for pc in data:
-        #     if pc['component'] in COMPONENTS:
-        #         component = list(filter(lambda c: c.component == pc['component'], components))
-        #     else:
-        #         component = list(filter(lambda c: c.component == pc['component'], additional))
-        #
-        #     if component:
-        #         for item in pc:
-        #             component[0].__setattr__(item, pc[item])
-        #     else:
-        #         abort(404)
-        #
-        # db.session.commit()
-        return {}, 204
 
+    @staticmethod
+    @auth_token
     @marshal_with(component_fields)
-    def patch(self, info_id=None):
+    def put(user, info_id=None):
         component = None
         if not info_id:
             abort(404)
+        if not user.is_admin and not user.is_owner(info_id):
+            abort(403)
         args = component_parser.parse_args()
         info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
         if args['component'] in COMPONENTS:
             components = info.components
         else:
             components = info.additional_components
-            
+
         if components:
             for component in components:
                 if component.component == args['component']:
                     for key in args:
-                        if args[key]:
-                            component.__setattr__(key, args[key])
-                        db.session.commit()
+                        component.__setattr__(key, args[key])
+                    db.session.commit()
                     break
             else:
                 abort(404)
@@ -120,10 +106,44 @@ class ComponentsResource(Resource):
             abort(404)
         return component, 201
 
-    def delete(self, info_id=None):
+    @staticmethod
+    @auth_token
+    @marshal_with(component_fields)
+    def patch(user, info_id=None):
+        component = None
         if not info_id:
             abort(404)
+        if not user.is_admin and not user.is_owner(info_id):
+            abort(403)
+        args = component_parser.parse_args()
+        info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        if args['component'] in COMPONENTS:
+            components = info.components
+        else:
+            components = info.additional_components
 
+        if components:
+            for component in components:
+                if component.component == args['component']:
+                    for key in args:
+                        if args[key]:
+                            component.__setattr__(key, args[key])
+                    db.session.commit()
+                    break
+            else:
+                abort(404)
+        else:
+            abort(404)
+        return component, 201
+
+    @staticmethod
+    @auth_token
+    def delete(user, info_id=None):
+        if not info_id:
+            abort(404)
+        if not user.is_admin and not user.is_owner(info_id):
+            print(user)
+            abort(403)
         info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
         components = info.components
         additional = info.additional_components
@@ -140,7 +160,7 @@ class ComponentsResource(Resource):
             for comp in components:
                 if comp.component in params or params[0] == '$all':
                     db.session.delete(comp)
-        
+
         if additional:
             for comp in additional:
                 if comp.component in params or params[0] == '$all':

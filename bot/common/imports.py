@@ -7,7 +7,7 @@ from .api import Api
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
-bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN, disable_web_page_preview=True)
 storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
 api = Api(os.getenv('IP'))

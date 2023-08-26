@@ -21,7 +21,7 @@ async def command_find(message: types.Message, state: FSMContext):
         if not api.delete_pc(info_id=data['info_id']):
             await message.answer(ERROR_TEXT)
     filters = {'min_price': None, 'max_price': None, 'author': None, 'title': None, 'date': None}
-    await state.update_data(user_id=data['user_id'], filters=filters)
+    await state.update_data(filters=filters)
     await message.answer('добавь фильтры', reply_markup=Buttons.filter_markup(filters))
     await FindState.choose_filters.set()
 
@@ -29,9 +29,7 @@ async def command_find(message: types.Message, state: FSMContext):
 async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == 'back':
         await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
-        data = await state.get_data()
         await state.reset_data()
-        await state.update_data(user_id=data['user_id'])
         await MainState.choose_mode.set()
     elif callback.data == 'min_price':
         await callback.message.edit_text('введи минимальную цену')
@@ -83,7 +81,7 @@ async def show_pc(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == 'back':
         await state.reset_data()
         await callback.message.edit_text('добавь фильтры', reply_markup=Buttons.filter_markup(data['filters']))
-        await state.update_data(filters=data['filters'], user_id=data['user_id'])
+        await state.update_data(filters=data['filters'])
         await FindState.choose_filters.set()
     else:
         if callback.data == 'prev':

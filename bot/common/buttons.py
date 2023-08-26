@@ -128,17 +128,24 @@ class Buttons:
         return comp_markup
 
     @staticmethod
-    def build_final_markup(username, back: bool = False):
+    def build_final_markup(username):
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
             InlineKeyboardButton('✏изменить', callback_data='change'),
             InlineKeyboardButton('🕵️‍сохранить анонимно', callback_data='save_anonim'),
             InlineKeyboardButton(f'😀сохранить от @{username}', callback_data='save_with_username')
         )
-        if back:
-            markup.add(InlineKeyboardButton('🔙назад', callback_data='back'))
         return markup
-    
+
+    @staticmethod
+    def my_pc_markup():
+        markup = InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            InlineKeyboardButton('✏изменить', callback_data='change'),
+            InlineKeyboardButton('🔙назад', callback_data='back')
+        )
+        return markup
+
     @staticmethod
     def my_assemblies(data: list[dict]):
         markup = InlineKeyboardMarkup(row_width=1)

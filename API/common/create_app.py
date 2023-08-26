@@ -13,7 +13,7 @@ def create_app(config_filename):
     with app.app_context():
         migrate.init_app(app, db)
 
-    from ..resources.users import UsersResource, users_blueprint
+    from ..resources.users import UsersResource, users_blueprint, Login, SignUp, ChangePassword
     from ..resources.components import ComponentsResource, comp_blueprint
     from ..resources.public_info import InfoResource
 
@@ -21,6 +21,10 @@ def create_app(config_filename):
     comp_api = Api(comp_blueprint)
 
     users_api.add_resource(UsersResource, '/users', '/users/<int:user_id>')
+    users_api.add_resource(Login, '/login')
+    users_api.add_resource(SignUp, '/signup')
+    users_api.add_resource(ChangePassword, '/change-password')
+
     comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:info_id>')
     comp_api.add_resource(InfoResource, '/info', '/info/<int:info_id>')
 

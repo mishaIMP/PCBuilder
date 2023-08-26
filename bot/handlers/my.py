@@ -9,8 +9,7 @@ from bot.common.buttons import Buttons
 
 
 async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    res = api.get_title_and_id_list(data['user_id'])
+    res = api.get_title_and_id_list()
     if not res:
         await callback.message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
     elif not res['count']:
@@ -28,7 +27,7 @@ async def command_my(message: types.Message, state: FSMContext):
     if 'info_id' in data:
         if not api.delete_pc(info_id=data['info_id']):
             await message.answer(ERROR_TEXT)
-    res = api.get_title_and_id_list(user_id=data['user_id'])
+    res = api.get_title_and_id_list()
     if not res:
         await message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
     elif not res['count']:
@@ -37,15 +36,12 @@ async def command_my(message: types.Message, state: FSMContext):
         markup = Buttons.my_assemblies(res['data'])
         await message.answer('вот твои сборки', reply_markup=markup)
         await state.update_data(assembly_list=res['data'])
-    await state.update_data(user_id=data['user_id'])
     await MyState.choose_assembly.set()
 
 
 async def back_to_main_menu(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
-    data = await state.get_data()
     await state.reset_data()
-    await state.update_data(user_id=data['user_id'])
     await MainState.choose_mode.set()
 
 
@@ -58,7 +54,7 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
     else:
         await state.update_data(total_price=calculate_total_price(res))
         await callback.message.edit_text(text=display_pc(res), parse_mode='MarkdownV2',
-                                         reply_markup=Buttons.build_final_markup(callback.from_user.username, True))
+                                         reply_markup=Buttons.my_pc_markup())
         await MyState.show_pc.set()
 
 
