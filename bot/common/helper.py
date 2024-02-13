@@ -1,14 +1,9 @@
-MAIN_MENU_TEXT = '/find - 🔍Найти сборку\n/add - ➕Добавить сборку\n/my - 🖥мои сборки'
-ERROR_TEXT = 'произошла ошибка'
-
-
 def display_pc(data: dict | dict) -> str:
-
     info = True if 'info' in data else False
-        
+
     text = f"*{data['info']['title']}*\n" if info and data['info']['title'] else ''
 
-    def show_component(component):
+    def display_component(component):
         if component['model']:
             if component['link']:
                 model = f'[{component["model"].upper()}]({component["link"]})'
@@ -18,17 +13,17 @@ def display_pc(data: dict | dict) -> str:
             return f'{component["component"].upper()}: *{model} \- {component["price"]}*{amount}\n'
 
     for comp in data['comps']['components']:
-        text += show_component(comp)
+        text += display_component(comp)
     if data['additional']['count']:
         text += f'_{"дополнительные комплектующие:"}_\n'
         for comp in data['additional']['components']:
-            text += show_component(comp)
-            
+            text += display_component(comp)
+
     if info:
         text += f"__*всего \- {data['info']['total_price']}*__ \t\t\t\t ❤{data['info']['likes']}❤\n"
         if data['info']['author']:
-            text += f'by @{data["info"]["author"]}' 
-        
+            text += f'by @{data["info"]["author"]}'
+
     return text
 
 
@@ -52,3 +47,12 @@ def get_comps(data: dict) -> list:
         for comp in data['additional']['components']:
             components.append(comp['component'])
     return components
+
+
+def get_component(data: dict) -> dict | None:
+    component = None
+    if data.get('comps', {}).get('count', None):
+        component = data['comps']['components'][0]
+    elif data.get('additional', {}).get('count', None):
+        component = data['additional']['components'][0]
+    return component

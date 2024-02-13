@@ -1,6 +1,7 @@
-import requests
-import json
 import datetime as dt
+import json
+
+import requests
 
 
 class Api:
@@ -81,6 +82,9 @@ class Api:
         response = requests.patch(self.IP + f'/info/{info_id}', data=payload, headers=self.headers)
         if response.status_code == 204:
             return True
+        print(response.status_code)
+        print(response.text)
+
         return False
 
     def add_title(self, title: str, info_id: int) -> bool:

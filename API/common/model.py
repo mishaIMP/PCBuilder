@@ -1,6 +1,7 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import date
+
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from API.common.auth import AuthToken
@@ -12,7 +13,7 @@ migrate = Migrate()
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(30), nullable=False, unique=True)
+    username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean(), default=False, nullable=True)
     public_info = db.relationship('PublicInfo', backref='user', lazy=True, passive_deletes=True,

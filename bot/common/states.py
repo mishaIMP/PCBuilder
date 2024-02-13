@@ -1,4 +1,4 @@
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.fsm.state import StatesGroup, State
 
 
 class MainState(StatesGroup):
@@ -29,7 +29,7 @@ class FindState(StatesGroup):
     get_title = State()
     get_date = State()
     show_pc = State()
-    
+
 
 class MyState(StatesGroup):
     choose_assembly = State()

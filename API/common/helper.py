@@ -2,7 +2,7 @@ from typing import Iterable, Sized
 
 from sqlalchemy_utils import InstrumentedList
 
-from API.common.model import Components, PublicInfo
+from API.common.model import PublicInfo
 
 COMPONENTS = ['cpu', 'gpu', 'motherboard', 'ram', 'case', 'storage', 'psu', 'culler', 'fan']
 
@@ -50,7 +50,3 @@ def is_valid_request_data(data: list | None) -> bool:
             if item not in pc:
                 return False
     return True
-
-
-
-

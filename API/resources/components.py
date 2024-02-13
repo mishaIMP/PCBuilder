@@ -1,8 +1,8 @@
-from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 from flask import Blueprint
+from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 
 from API.common.helper import COMPONENTS
-from API.common.model import AdditionalComponents, db, Components, PublicInfo, User, auth_token
+from API.common.model import AdditionalComponents, db, Components, PublicInfo, auth_token
 
 comp_blueprint = Blueprint('components', __name__)
 
@@ -50,14 +50,14 @@ class ComponentsResource(Resource):
                 additional = tuple(filter(lambda c: c.component in params.split('-'), additional))
             return {
                 'comps': marshal({
-                            'count': len(components),
-                            'components': [marshal(c, component_fields) for c in components]
-                                      }, list_fields),
+                    'count': len(components),
+                    'components': [marshal(c, component_fields) for c in components]
+                }, list_fields),
                 'additional': marshal({
-                            'count': len(additional),
-                            'components': [marshal(a, component_fields) for a in additional]
-                                      }, list_fields),
-                   }, 200
+                    'count': len(additional),
+                    'components': [marshal(a, component_fields) for a in additional]
+                }, list_fields),
+            }, 200
 
         return abort(404)
 
@@ -68,7 +68,7 @@ class ComponentsResource(Resource):
             abort(404)
         if not user.is_admin and not user.is_owner(info_id):
             abort(403)
-        args = component_parser.parse_args(strict=True)
+        args = component_parser.parse_args()
         if args['component'] in COMPONENTS:
             component = Components(public_info_id=info_id, **args)
         else:

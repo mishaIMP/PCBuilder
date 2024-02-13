@@ -1,8 +1,7 @@
+from flask import Blueprint
 from flask_restful import Resource, reqparse, fields, marshal_with, marshal, abort
 
 from API.common.model import db, User, auth_token
-from flask import Blueprint
-
 
 users_blueprint = Blueprint('users', __name__)
 
@@ -75,6 +74,7 @@ class SignUp(Resource):
         args = post_parser.parse_args()
         try:
             user = User(**args)
+
             db.session.add(user)
             db.session.commit()
             token = auth_token.encode_token(user)

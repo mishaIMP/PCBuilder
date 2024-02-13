@@ -1,8 +1,4 @@
-.DS_Store
-.ipynb_checkpoints
-/__pycache__
 /.idea
-*.pyc
 .env
 /venv
-*.xml
+instance/config.py

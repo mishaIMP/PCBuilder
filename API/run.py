@@ -18,7 +18,5 @@ def handle_error(e):
 for ex in default_exceptions:
     app.register_error_handler(ex, handle_error)
 
-
 if __name__ == '__main__':
     app.run(debug=True)
-

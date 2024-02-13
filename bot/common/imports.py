@@ -1,13 +1,13 @@
-from aiogram import Bot, Dispatcher
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from dotenv import load_dotenv
 import os
+
+from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+from dotenv import load_dotenv
 
 from .api import Api
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
 bot = Bot(token=TOKEN, disable_web_page_preview=True)
-storage = MemoryStorage()
-dp = Dispatcher(bot=bot, storage=storage)
+dp = Dispatcher(storage=MemoryStorage())
 api = Api(os.getenv('IP'))

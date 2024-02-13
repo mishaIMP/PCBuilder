@@ -1,3 +1,3 @@
-# Flask-RESTfull-aiogram_bot
+# A telegram bot made with Flask and Aiogram
 
-to make migrations use "flask --app API.run.py <options/commands>"
+

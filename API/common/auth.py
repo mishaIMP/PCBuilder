@@ -2,7 +2,6 @@ import datetime as dt
 from functools import wraps
 
 import jwt
-
 from flask import current_app, request
 from flask_restful import abort
 
@@ -15,7 +14,7 @@ class AuthToken:
     @staticmethod
     def encode_token(user):
         payload = {
-            "exp": dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1),
+            "exp": dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=30),
             "id": str(user.id)
         }
         token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm="HS256")
@@ -75,4 +74,5 @@ class AuthToken:
                 return f(None, *args, **kwargs)
             user_id = self.get_user_id(token)
             return f(user_id, *args, **kwargs)
+
         return decorator

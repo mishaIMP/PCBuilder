@@ -1,11 +1,12 @@
-import aiogram
-from aiogram import types
-from aiogram.dispatcher import FSMContext
+from aiogram import types, F, Dispatcher
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 
-from bot.common.states import MyState, MainState, AddState
-from bot.common.imports import api
-from bot.common.helper import display_pc, calculate_total_price, get_comps, MAIN_MENU_TEXT, ERROR_TEXT
 from bot.common.buttons import Buttons
+from bot.common.dialog import ERROR_TEXT, MAIN_MENU_TEXT, MyText
+from bot.common.helper import display_pc, calculate_total_price, get_comps
+from bot.common.imports import api
+from bot.common.states import MyState, MainState, AddState
 
 
 async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
@@ -13,17 +14,17 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
     if not res:
         await callback.message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
     elif not res['count']:
-        await callback.message.answer('сборок нету(((', reply_markup=Buttons.back_markup())
+        await callback.message.edit_text(MyText.NOT_PRESENT, reply_markup=Buttons.back_markup())
     else:
         markup = Buttons.my_assemblies(res['data'])
-        await callback.message.edit_text('вот твои сборки', reply_markup=markup)
+        await callback.message.edit_text(MyText.YOUR_BUILDS, reply_markup=markup)
         await state.update_data(assembly_list=res['data'])
-    await MyState.choose_assembly.set()
+    await state.set_state(MyState.choose_assembly)
 
 
 async def command_my(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    await state.reset_data()
+    await state.update_data(data={})
     if 'info_id' in data:
         if not api.delete_pc(info_id=data['info_id']):
             await message.answer(ERROR_TEXT)
@@ -31,18 +32,18 @@ async def command_my(message: types.Message, state: FSMContext):
     if not res:
         await message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
     elif not res['count']:
-        await message.answer('сборок нету(((', reply_markup=Buttons.back_markup())
+        await message.answer(MyText.NOT_PRESENT, reply_markup=Buttons.back_markup())
     else:
         markup = Buttons.my_assemblies(res['data'])
-        await message.answer('вот твои сборки', reply_markup=markup)
+        await message.answer(MyText.YOUR_BUILDS, reply_markup=markup)
         await state.update_data(assembly_list=res['data'])
-    await MyState.choose_assembly.set()
+    await state.set_state(MyState.choose_assembly)
 
 
 async def back_to_main_menu(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
-    await state.reset_data()
-    await MainState.choose_mode.set()
+    await state.update_data(data={})
+    await state.set_state(MainState.choose_mode)
 
 
 async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
@@ -55,15 +56,15 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
         await state.update_data(total_price=calculate_total_price(res))
         await callback.message.edit_text(text=display_pc(res), parse_mode='MarkdownV2',
                                          reply_markup=Buttons.my_pc_markup())
-        await MyState.show_pc.set()
+        await state.set_state(MyState.show_pc)
 
 
 async def change_assembly(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if callback.data == 'back':
         markup = Buttons.my_assemblies(data['assembly_list'])
-        await callback.message.edit_text('вот твои сборки', reply_markup=markup)
-        await MyState.choose_assembly.set()
+        await callback.message.edit_text(MyText.YOUR_BUILDS, reply_markup=markup)
+        await state.set_state(MyState.choose_assembly)
     elif callback.data == 'change':
         res = api.get_components(info_id=data['info_id'])
         if not res:
@@ -72,15 +73,14 @@ async def change_assembly(callback: types.CallbackQuery, state: FSMContext):
             comps = get_comps(data=res)
             await state.update_data(comps=comps)
             markup = Buttons.build_comp_markup(added=comps, edit=True)
-            await callback.message.edit_text('изменить сборку', reply_markup=markup)
-            await AddState.add_comp.set()
+            await callback.message.edit_text(MyText.EDIT_PC, reply_markup=markup)
+            await state.set_state(AddState.add_comp)
 
 
-def register_all_handlers(dp: aiogram.Dispatcher):
-    dp.register_message_handler(command_my, commands='my', state='*')
+def register_my_handlers(my_router: Dispatcher):
+    my_router.message.register(command_my, Command('my'))
 
-    dp.register_callback_query_handler(choose_mode, text='my', state=MainState.choose_mode)
-    dp.register_callback_query_handler(back_to_main_menu, text='back', state=MyState.choose_assembly)
-    dp.register_callback_query_handler(choose_filters, lambda c: c.data.startswith('assembly_'),
-                                       state=MyState.choose_assembly)
-    dp.register_callback_query_handler(change_assembly, state=MyState.show_pc)
+    my_router.callback_query.register(choose_mode, MainState.choose_mode, F.data == 'my')
+    my_router.callback_query.register(back_to_main_menu, MyState.choose_assembly, F.data == 'back')
+    my_router.callback_query.register(choose_filters, MyState.choose_assembly, F.data.startswith('assembly_'))
+    my_router.callback_query.register(change_assembly, MyState.show_pc)

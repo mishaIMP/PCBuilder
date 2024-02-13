@@ -1,5 +1,6 @@
 from datetime import datetime
-from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
+
+from flask_restful import Resource, reqparse, marshal_with, fields, abort
 
 from API.common.helper import is_valid_params, convert_info
 from API.common.model import db, User, PublicInfo, auth_token
@@ -34,7 +35,6 @@ args_parser.add_argument('params', type=str, required=False, location='args')
 parser = reqparse.RequestParser()
 parser.add_argument('total_price', type=int, required=False)
 parser.add_argument('author', type=str, required=False)
-parser.add_argument('likes', type=int, required=False)
 parser.add_argument('title', type=str, required=False)
 
 params_parser = reqparse.RequestParser()
@@ -56,7 +56,7 @@ class InfoResource(Resource):
             public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
             result = convert_info(public_info, params)
             return result
-        
+
         if args['user']:
             if not user_id:
                 abort(404)
