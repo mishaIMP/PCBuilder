@@ -3,9 +3,8 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from bot.common.buttons import Buttons
-from bot.common.dialog import MAIN_MENU_TEXT, ERROR_TEXT, FindText
+from bot.common.dialog import MAIN_MENU_TEXT, FindText
 from bot.common.helper import display_pc
-from bot.common.imports import api
 from bot.common.states import FindState, MainState
 
 
@@ -16,19 +15,18 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(FindState.choose_filters)
 
 
-async def command_find(message: types.Message, state: FSMContext):
+async def command_find(message: types.Message, state: FSMContext, api):
     data = await state.get_data()
     await state.update_data(data={})
     if 'info_id' in data:
-        if not api.delete_pc(info_id=data['info_id']):
-            await message.answer(ERROR_TEXT)
+        api.delete_pc(info_id=data['info_id'])
     filters = {'min_price': None, 'max_price': None, 'author': None, 'title': None, 'date': None}
     await state.update_data(filters=filters)
     await message.answer(FindText.ADD_FILTERS, reply_markup=Buttons.filter_markup(filters))
     await state.set_state(FindState.choose_filters)
 
 
-async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
+async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
     if callback.data == 'back':
         await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
         await state.update_data(data={})
@@ -48,7 +46,7 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
     elif callback.data == 'date':
         await callback.message.edit_text(FindText.SELECT_TIME_PERIOD, reply_markup=Buttons.time_markup())
         await state.set_state(FindState.get_date)
-    elif callback.data == 'no filters':
+    elif callback.data == 'reset_filters':
         data = await state.get_data()
         data['filters']['min_price'] = None
         data['filters']['max_price'] = None
@@ -61,24 +59,33 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_text(FindText.SEARCHING)
         data = await state.get_data()
         res = api.get_id_list(data['filters'])
-        if not res:
-            await callback.message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
-        elif not res['count']:
-            await callback.message.answer(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup())
+        if not res['count']:
+            await callback.message.edit_text(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup())
         else:
-            await state.update_data(assembly_list=res['data'], current=0, max=res['count'])
-            pc = api.get_whole_pc(info_id=res['data'][0]['id'])
-            if not pc:
-                await callback.answer(ERROR_TEXT)
+            pc = {}
+            assembly_list = []
+            amount = 0
+            current = 0
+            for i in range(res['count']):
+                build = api.get_whole_pc(info_id=res['data'][0]['id'])
+                if build:
+                    assembly_list.append(res['data'][i])
+                    amount += 1
+                    if not pc:
+                        pc = build
+                        current = i
+
+            if not amount:
+                await callback.message.edit_text(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup())
             else:
-                await callback.message.edit_text(display_pc(pc), parse_mode='MarkdownV2',
+                await state.update_data(assembly_list=assembly_list, current=current, max=amount)
+                await callback.message.edit_text(display_pc(pc), parse_mode='HTML',
                                                  reply_markup=Buttons.show_pc_markup())
                 await state.update_data(likes=pc['info']['likes'])
-
         await state.set_state(FindState.show_pc)
 
 
-async def show_pc(callback: types.CallbackQuery, state: FSMContext):
+async def show_pc(callback: types.CallbackQuery, state: FSMContext, api):
     data = await state.get_data()
     if callback.data == 'back':
         await state.update_data(data={})
@@ -95,16 +102,10 @@ async def show_pc(callback: types.CallbackQuery, state: FSMContext):
         info_id = data['assembly_list'][data['current']]['id']
         if callback.data == 'like':
             likes = data['likes'] + 1
-            if not api.like(info_id=info_id, likes=likes):
-                await callback.answer(ERROR_TEXT)
-
+            api.like(info_id=info_id, likes=likes)
         pc = api.get_whole_pc(info_id=info_id)
-        if not pc:
-            await callback.answer(ERROR_TEXT)
-        else:
-            await callback.message.edit_text(display_pc(pc), parse_mode='MarkdownV2',
-                                             reply_markup=Buttons.show_pc_markup())
-            await state.update_data(likes=pc['info']['likes'])
+        await callback.message.edit_text(display_pc(pc), parse_mode='HTML', reply_markup=Buttons.show_pc_markup())
+        await state.update_data(likes=pc['info']['likes'])
 
 
 async def get_min_and_max_price(message: types.Message, state: FSMContext):
@@ -148,11 +149,11 @@ async def get_date(callback: types.CallbackQuery, state: FSMContext):
 
 
 def register_find_handlers(find_router: Dispatcher):
-    find_router.message.register(command_find, Command('find'))
     find_router.message.register(get_min_and_max_price, FindState.get_min_price, F.content_type == 'text')
     find_router.message.register(get_min_and_max_price, FindState.get_max_price, F.content_type == 'text')
     find_router.message.register(get_author, FindState.get_author, F.content_type == 'text')
     find_router.message.register(get_title_to_find, FindState.get_title, F.content_type == 'text')
+    find_router.message.register(command_find, Command('find'))
 
     find_router.callback_query.register(choose_mode, MainState.choose_mode, F.data == 'find')
     find_router.callback_query.register(choose_filters, FindState.choose_filters)

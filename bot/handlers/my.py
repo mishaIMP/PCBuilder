@@ -3,17 +3,14 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from bot.common.buttons import Buttons
-from bot.common.dialog import ERROR_TEXT, MAIN_MENU_TEXT, MyText
+from bot.common.dialog import MAIN_MENU_TEXT, MyText
 from bot.common.helper import display_pc, calculate_total_price, get_comps
-from bot.common.imports import api
 from bot.common.states import MyState, MainState, AddState
 
 
-async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
+async def choose_mode(callback: types.CallbackQuery, state: FSMContext, api):
     res = api.get_title_and_id_list()
-    if not res:
-        await callback.message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
-    elif not res['count']:
+    if not res['count']:
         await callback.message.edit_text(MyText.NOT_PRESENT, reply_markup=Buttons.back_markup())
     else:
         markup = Buttons.my_assemblies(res['data'])
@@ -22,16 +19,13 @@ async def choose_mode(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MyState.choose_assembly)
 
 
-async def command_my(message: types.Message, state: FSMContext):
+async def command_my(message: types.Message, state: FSMContext, api):
     data = await state.get_data()
     await state.update_data(data={})
     if 'info_id' in data:
-        if not api.delete_pc(info_id=data['info_id']):
-            await message.answer(ERROR_TEXT)
+        api.delete_pc(info_id=data['info_id'])
     res = api.get_title_and_id_list()
-    if not res:
-        await message.answer(ERROR_TEXT, reply_markup=Buttons.back_markup())
-    elif not res['count']:
+    if not res['count']:
         await message.answer(MyText.NOT_PRESENT, reply_markup=Buttons.back_markup())
     else:
         markup = Buttons.my_assemblies(res['data'])
@@ -46,20 +40,17 @@ async def back_to_main_menu(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainState.choose_mode)
 
 
-async def choose_filters(callback: types.CallbackQuery, state: FSMContext):
+async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
     info_id = int(callback.data[9:])
     await state.update_data(info_id=info_id)
     res = api.get_components(info_id=info_id)
-    if not res:
-        await callback.answer(ERROR_TEXT)
-    else:
-        await state.update_data(total_price=calculate_total_price(res))
-        await callback.message.edit_text(text=display_pc(res), parse_mode='MarkdownV2',
-                                         reply_markup=Buttons.my_pc_markup())
-        await state.set_state(MyState.show_pc)
+    await state.update_data(total_price=calculate_total_price(res))
+    await callback.message.edit_text(text=display_pc(res), parse_mode='HTML',
+                                     reply_markup=Buttons.my_pc_markup())
+    await state.set_state(MyState.show_pc)
 
 
-async def change_assembly(callback: types.CallbackQuery, state: FSMContext):
+async def change_assembly(callback: types.CallbackQuery, state: FSMContext, api):
     data = await state.get_data()
     if callback.data == 'back':
         markup = Buttons.my_assemblies(data['assembly_list'])
@@ -67,14 +58,11 @@ async def change_assembly(callback: types.CallbackQuery, state: FSMContext):
         await state.set_state(MyState.choose_assembly)
     elif callback.data == 'change':
         res = api.get_components(info_id=data['info_id'])
-        if not res:
-            await callback.answer(ERROR_TEXT)
-        else:
-            comps = get_comps(data=res)
-            await state.update_data(comps=comps)
-            markup = Buttons.build_comp_markup(added=comps, edit=True)
-            await callback.message.edit_text(MyText.EDIT_PC, reply_markup=markup)
-            await state.set_state(AddState.add_comp)
+        comps = get_comps(data=res)
+        await state.update_data(comps=comps)
+        markup = Buttons.comp_markup(added=comps, edit=True)
+        await callback.message.edit_text(MyText.EDIT_PC, reply_markup=markup)
+        await state.set_state(AddState.add_comp)
 
 
 def register_my_handlers(my_router: Dispatcher):

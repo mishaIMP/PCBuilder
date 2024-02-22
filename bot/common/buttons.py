@@ -3,6 +3,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 class Buttons:
+    back_to_main_menu = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='в главное меню', callback_data='main_menu')]])
+
     @staticmethod
     def start_markup():
         return InlineKeyboardMarkup(
@@ -45,7 +48,7 @@ class Buttons:
             btn = InlineKeyboardButton(text=text, callback_data=i)
             builder.row(btn)
         if filter_exists:
-            builder.row(InlineKeyboardButton(text='🧹сбросить фильтры', callback_data='no filters'))
+            builder.row(InlineKeyboardButton(text='🧹сбросить фильтры', callback_data='reset_filters'))
         builder.row(
             InlineKeyboardButton(text='🔍искать', callback_data='find'),
             InlineKeyboardButton(text='🔙назад', callback_data='back')
@@ -82,18 +85,17 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def build_comp_markup(added, edit: bool = False):
+    def comp_markup(added, edit: bool = False):
         components = {
             'название': 'title',
             'процессор': 'cpu',
-            'видеокарту': 'gpu',
             'материнскую плату': 'motherboard',
             'оперативную память': 'ram',
+            'видеокарту': 'gpu',
             'HDD/SSD': 'storage',
             'корпус': 'case',
             'блок питания': 'psu',
-            'куллер/СЖО': 'culler',
-            'корпусные вентиляторы': 'fan'
+            'охлаждение процессора': 'culler'
         }
         builder = InlineKeyboardBuilder()
         is_ready = True
@@ -106,10 +108,17 @@ class Buttons:
                 btn = InlineKeyboardButton(text='✏' + key, callback_data='edit_' + val)
             builder.row(btn)
 
+        additional_components = {
+            'fan': 'корпусные вентиляторы',
+            'sound_card': 'звуковую карту',
+            'lan_card': 'сетевую карту',
+            'gpu_holder': 'даржатель для видеокарты',
+            'more_storage': 'дополнительные HDD/SSD'
+        }
         count = 0
         for comp in added:
-            if comp not in components.values():
-                btn = InlineKeyboardButton(text='✏' + comp, callback_data='edit_' + comp)
+            if comp in additional_components.keys():
+                btn = InlineKeyboardButton(text='✏' + additional_components[comp], callback_data='edit_' + comp)
                 builder.row(btn)
                 count += 1
 
@@ -125,7 +134,22 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def build_final_markup(username):
+    def additional_comp_markup(added):
+        additional_components = {
+            'fan': 'корпусные вентиляторы',
+            'sound_card': 'звуковую карту',
+            'lan_card': 'сетевую карту',
+            'gpu_holder': 'даржатель для видеокарты',
+            'more_storage': 'дополнительные HDD/SSD'
+        }
+        builder = InlineKeyboardBuilder()
+        for component in additional_components:
+            if component not in added:
+                builder.row(InlineKeyboardButton(text=additional_components[component], callback_data=component))
+        return builder.as_markup()
+
+    @staticmethod
+    def final_markup(username):
         return InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text='✏изменить', callback_data='change'),
                               InlineKeyboardButton(text='🕵️‍сохранить анонимно', callback_data='save_anonim'),

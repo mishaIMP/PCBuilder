@@ -1,28 +1,28 @@
-def display_pc(data: dict | dict) -> str:
-    info = True if 'info' in data else False
+def display_pc(data: dict) -> str:
+    info = True if data and 'info' in data else False
 
-    text = f"*{data['info']['title']}*\n" if info and data['info']['title'] else ''
+    text = f"<b>{data['info']['title']}\n</b>" if info and data['info']['title'] else ''
 
     def display_component(component):
         if component['model']:
             if component['link']:
-                model = f'[{component["model"].upper()}]({component["link"]})'
+                model = f'<a href="{component["link"]}">{component["model"].upper()}</a>'
             else:
-                model = comp["model"].upper()
-            amount = f' \[x{component["amount"]}\]' if component['amount'] > 1 else ''
-            return f'{component["component"].upper()}: *{model} \- {component["price"]}*{amount}\n'
+                model = component["model"].upper()
+            amount = f' [x{component["amount"]}]' if component['amount'] > 1 else ''
+            return f'{component["component"].upper()}: <b>{model} - {component["price"]}</b>{amount}\n'
 
     for comp in data['comps']['components']:
         text += display_component(comp)
     if data['additional']['count']:
-        text += f'_{"дополнительные комплектующие:"}_\n'
+        text += f'<i>{"дополнительные комплектующие:"}</i>\n'
         for comp in data['additional']['components']:
             text += display_component(comp)
 
     if info:
-        text += f"__*всего \- {data['info']['total_price']}*__ \t\t\t\t ❤{data['info']['likes']}❤\n"
+        text += f"<u><b>всего - {data['info']['total_price']}</b></u>\t\t\t\t ❤{data['info']['likes']}❤\n"
         if data['info']['author']:
-            text += f'by @{data["info"]["author"]}'
+            text += f'автор: @{data["info"]["author"]}'
 
     return text
 
@@ -51,8 +51,8 @@ def get_comps(data: dict) -> list:
 
 def get_component(data: dict) -> dict | None:
     component = None
-    if data.get('comps', {}).get('count', None):
+    if data['comps']['count']:
         component = data['comps']['components'][0]
-    elif data.get('additional', {}).get('count', None):
+    elif data['additional']['count']:
         component = data['additional']['components'][0]
     return component

@@ -7,9 +7,14 @@ from bot.handlers.add import register_add_handlers
 from bot.handlers.find import register_find_handlers
 from bot.handlers.my import register_my_handlers
 from bot.handlers.start import register_start_handler
+from bot.middlewares.main import MainMiddleware
 
 
 async def main() -> None:
+    middleware = MainMiddleware()
+    dp.message.middleware(middleware)
+    dp.callback_query.middleware(middleware)
+
     register_start_handler(dp)
     register_add_handlers(dp)
     register_find_handlers(dp)
