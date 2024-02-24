@@ -28,7 +28,7 @@ async def command_find(message: types.Message, state: FSMContext, api):
 
 async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
     if callback.data == 'back':
-        await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
+        await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup)
         await state.update_data(data={})
         await state.set_state(MainState.choose_mode)
     elif callback.data == 'min_price':
@@ -44,7 +44,7 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
         await callback.message.edit_text(FindText.ENTER_TITLE)
         await state.set_state(FindState.get_title)
     elif callback.data == 'date':
-        await callback.message.edit_text(FindText.SELECT_TIME_PERIOD, reply_markup=Buttons.time_markup())
+        await callback.message.edit_text(FindText.SELECT_TIME_PERIOD, reply_markup=Buttons.time_markup)
         await state.set_state(FindState.get_date)
     elif callback.data == 'reset_filters':
         data = await state.get_data()
@@ -60,7 +60,7 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
         data = await state.get_data()
         res = api.get_id_list(data['filters'])
         if not res['count']:
-            await callback.message.edit_text(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup())
+            await callback.message.edit_text(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup)
         else:
             pc = {}
             assembly_list = []
@@ -76,36 +76,36 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
                         current = i
 
             if not amount:
-                await callback.message.edit_text(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup())
+                await callback.message.edit_text(FindText.NOTHING_FOUND, reply_markup=Buttons.back_markup)
             else:
                 await state.update_data(assembly_list=assembly_list, current=current, max=amount)
                 await callback.message.edit_text(display_pc(pc), parse_mode='HTML',
-                                                 reply_markup=Buttons.show_pc_markup())
+                                                 reply_markup=Buttons.show_pc_markup)
                 await state.update_data(likes=pc['info']['likes'])
         await state.set_state(FindState.show_pc)
 
 
 async def show_pc(callback: types.CallbackQuery, state: FSMContext, api):
     data = await state.get_data()
-    if callback.data == 'back':
+    if callback.data == 'to_filters':
         await state.update_data(data={})
         await callback.message.edit_text(FindText.ADD_FILTERS, reply_markup=Buttons.filter_markup(data['filters']))
         await state.update_data(filters=data['filters'])
         await state.set_state(FindState.choose_filters)
     else:
-        if callback.data == 'prev':
-            data['current'] = (data['current'] - 1) % data['max']
-            await state.update_data(data)
-        elif callback.data == 'next':
-            data['current'] = (data['current'] + 1) % data['max']
-            await state.update_data(data)
-        info_id = data['assembly_list'][data['current']]['id']
-        if callback.data == 'like':
-            likes = data['likes'] + 1
+        if callback.data != 'next':
+            info_id = data['assembly_list'][data['current']]['id']
+            if callback.data == 'like':
+                likes = data['likes'] + 1
+            else:
+                likes = data['likes'] - 1
             api.like(info_id=info_id, likes=likes)
-        pc = api.get_whole_pc(info_id=info_id)
-        await callback.message.edit_text(display_pc(pc), parse_mode='HTML', reply_markup=Buttons.show_pc_markup())
-        await state.update_data(likes=pc['info']['likes'])
+        if data['current'] + 1 < data['max']:
+            pc = api.get_whole_pc(info_id=data['assembly_list'][data['current'] + 1]['id'])
+            await callback.message.edit_text(display_pc(pc), parse_mode='HTML', reply_markup=Buttons.show_pc_markup)
+            await state.update_data(likes=pc['info']['likes'], current=data['current'] + 1)
+        else:
+            await callback.message.edit_text(FindText.NO_MORE_BUILDS, reply_markup=Buttons.back_to_filters)
 
 
 async def get_min_and_max_price(message: types.Message, state: FSMContext):

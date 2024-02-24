@@ -32,7 +32,7 @@ async def command_add(message: types.Message, state: FSMContext, api):
 async def add_component(callback: types.CallbackQuery, state: FSMContext, api):
     mode = callback.data
     if mode == 'back':
-        await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
+        await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup)
         data = await state.get_data()
         await state.update_data(data={})
         api.delete_pc(info_id=data['info_id'])
@@ -44,10 +44,8 @@ async def add_component(callback: types.CallbackQuery, state: FSMContext, api):
         await callback.message.edit_text(text=display_pc(res), parse_mode='HTML',
                                          reply_markup=Buttons.final_markup(callback.from_user.username))
         await state.set_state(AddState.save_pc)
-    elif mode == 'edit_save':
-        pass
     elif mode in ('title', 'edit_title'):
-        await callback.message.edit_text(AddText.ENTER_TITLE, reply_markup=Buttons.back_markup())
+        await callback.message.edit_text(AddText.ENTER_TITLE, reply_markup=Buttons.back_markup)
         await state.set_state(AddState.get_title)
     elif mode.startswith('edit_'):
         data = await state.get_data()
@@ -75,14 +73,14 @@ async def get_model(message: types.Message, state: FSMContext):
 async def get_price(message: types.Message, state: FSMContext):
     price = message.text
     await state.update_data(price=price)
-    await message.answer(AddText.ENTER_AMOUNT, reply_markup=Buttons.skip_markup())
+    await message.answer(AddText.ENTER_AMOUNT, reply_markup=Buttons.skip_markup)
     await state.set_state(AddState.get_amount)
 
 
 async def get_amount(message: types.Message, state: FSMContext):
     amount = message.text
     await state.update_data(amount=amount)
-    await message.answer(AddText.ENTER_LINK, reply_markup=Buttons.skip_markup())
+    await message.answer(AddText.ENTER_LINK, reply_markup=Buttons.skip_markup)
     await state.set_state(AddState.get_link)
 
 
@@ -90,8 +88,8 @@ async def get_link(message: types.Message, state: FSMContext, api):
     link = message.text
     data = await state.get_data()
     amount = data.get('amount', 1)
-    res = api.add_component(comp=data['comp'], model=data['model'], price=data['price'], amount=amount, link=link,
-                            info_id=data['info_id'])
+    api.add_component(comp=data['comp'], model=data['model'], price=data['price'], amount=amount, link=link,
+                      info_id=data['info_id'])
     data['comps'].append(data['comp'])
     await state.update_data(data={})
     data_ = {}
@@ -104,7 +102,7 @@ async def get_link(message: types.Message, state: FSMContext, api):
 
 
 async def skip_amount(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(AddText.ENTER_LINK, reply_markup=Buttons.skip_markup())
+    await callback.message.edit_text(AddText.ENTER_LINK, reply_markup=Buttons.skip_markup)
     await state.set_state(AddState.get_link)
 
 
@@ -159,16 +157,16 @@ async def add_info(callback: types.CallbackQuery, state: FSMContext, api):
     callback_data = callback.data
 
     if callback_data == 'model':
-        await callback.message.edit_text(AddText.ENTER_MODEL, reply_markup=Buttons.back_markup())
+        await callback.message.edit_text(AddText.ENTER_MODEL, reply_markup=Buttons.back_markup)
         await state.set_state(AddState.edit_model)
     elif callback_data == 'price':
-        await callback.message.edit_text(AddText.ENTER_PRICE, reply_markup=Buttons.back_markup())
+        await callback.message.edit_text(AddText.ENTER_PRICE, reply_markup=Buttons.back_markup)
         await state.set_state(AddState.edit_price)
     elif callback_data == 'amount':
-        await callback.message.edit_text(AddText.ENTER_AMOUNT, reply_markup=Buttons.back_markup())
+        await callback.message.edit_text(AddText.ENTER_AMOUNT, reply_markup=Buttons.back_markup)
         await state.set_state(AddState.edit_amount)
     elif callback_data == 'link':
-        await callback.message.edit_text(AddText.ENTER_LINK, reply_markup=Buttons.back_markup())
+        await callback.message.edit_text(AddText.ENTER_LINK, reply_markup=Buttons.back_markup)
         await state.set_state(AddState.edit_link)
     else:
         data = await state.get_data()
@@ -242,7 +240,7 @@ async def select_privacy(callback: types.CallbackQuery, state: FSMContext, api):
 
 
 async def return_to_main_menu(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup())
+    await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup)
     await state.set_state(MainState.choose_mode)
 
 

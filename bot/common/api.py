@@ -50,6 +50,7 @@ class Api:
                     logging.critical('api error: impossible to log in')
                 return func(self, *args, **kwargs)
             return result
+
         return decorator
 
     @keep_user_authorized
@@ -98,7 +99,6 @@ class Api:
     def add_component(self, comp: str, model: str, price: int, amount: int, info_id: int, link: str = None) -> None:
         payload = json.dumps({
             "component": comp,
-            "model": model,
             "model": model,
             "price": price,
             "amount": amount,

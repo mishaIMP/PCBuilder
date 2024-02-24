@@ -20,9 +20,9 @@ def display_pc(data: dict) -> str:
             text += display_component(comp)
 
     if info:
-        text += f"<u><b>всего - {data['info']['total_price']}</b></u>\t\t\t\t ❤{data['info']['likes']}❤\n"
+        text += f"<u><b>всего - {data['info']['total_price']}</b></u>\t\t\t\t ❤{data['info']['likes']}❤"
         if data['info']['author']:
-            text += f'автор: @{data["info"]["author"]}'
+            text += f'\nавтор: @{data["info"]["author"]}'
 
     return text
 

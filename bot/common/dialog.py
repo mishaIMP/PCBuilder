@@ -16,6 +16,7 @@ class FindText:
     SELECT_TIME_PERIOD = 'выбери промежуток времени'
     SEARCHING = 'поиск...'
     NOTHING_FOUND = 'ничего не найдено😔'
+    NO_MORE_BUILDS = 'больше сборок нет'
 
 
 class AddText:

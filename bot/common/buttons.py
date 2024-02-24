@@ -3,31 +3,48 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 class Buttons:
+    start_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='🔍', callback_data='find'),
+                          InlineKeyboardButton(text='➕', callback_data='add'),
+                          InlineKeyboardButton(text='🖥', callback_data='my')]]
+    )
     back_to_main_menu = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='в главное меню', callback_data='main_menu')]])
 
-    @staticmethod
-    def start_markup():
-        return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='🔍', callback_data='find'),
-                              InlineKeyboardButton(text='➕', callback_data='add'),
-                              InlineKeyboardButton(text='🖥', callback_data='my')]]
-        )
+    back_to_filters = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='перейти к фильтрам', callback_data='to_filters')]]
+    )
+
+    show_pc_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='👍', callback_data='like'),
+                          InlineKeyboardButton(text='👎', callback_data='dislike')],
+                         [InlineKeyboardButton(text='➡', callback_data='next')],
+                         [InlineKeyboardButton(text='фильтры', callback_data='to_filters')]]
+    )
+
+    back_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='🔙назад', callback_data='back')]]
+    )
+
+    skip_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='⏭пропустить', callback_data='skip')]]
+    )
+
+    time_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='день', callback_data='day'),
+                          InlineKeyboardButton(text='неделя', callback_data='week'),
+                          InlineKeyboardButton(text='месяц', callback_data='month')],
+                         [InlineKeyboardButton(text='3 месяца', callback_data='3 months'),
+                          InlineKeyboardButton(text='год', callback_data='year')]]
+    )
+
+    my_pc_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='✏изменить', callback_data='change')],
+                         [InlineKeyboardButton(text='🔙назад', callback_data='back')]]
+    )
 
     @staticmethod
-    def back_markup():
-        return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='🔙назад', callback_data='back')]]
-        )
-
-    @staticmethod
-    def skip_markup():
-        return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='⏭пропустить', callback_data='skip')]]
-        )
-
-    @staticmethod
-    def filter_markup(filters: dict):
+    def filter_markup(filters: dict) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
         filters_ = {
             'min_price': '💴min стоимость',
@@ -56,17 +73,7 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def time_markup():
-        return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='день', callback_data='day'),
-                              InlineKeyboardButton(text='неделя', callback_data='week'),
-                              InlineKeyboardButton(text='месяц', callback_data='month')],
-                             [InlineKeyboardButton(text='3 месяца', callback_data='3 months'),
-                              InlineKeyboardButton(text='год', callback_data='year')]]
-        )
-
-    @staticmethod
-    def add_info_markup(added: dict):
+    def add_info_markup(added: dict) -> InlineKeyboardMarkup:
         info = {'модель': 'model', 'цену': 'price', 'количество': 'amount', 'ссылку': 'link'}
         builder = InlineKeyboardBuilder()
         is_ready = True
@@ -85,7 +92,7 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def comp_markup(added, edit: bool = False):
+    def comp_markup(added) -> InlineKeyboardMarkup:
         components = {
             'название': 'title',
             'процессор': 'cpu',
@@ -101,7 +108,7 @@ class Buttons:
         is_ready = True
         for key, val in components.items():
             if val not in added:
-                if val in ('title', 'cpu', 'gpu', 'motherboard', 'ram'):
+                if val in ('title', 'cpu', 'motherboard', 'ram'):
                     is_ready = False
                 btn = InlineKeyboardButton(text=key, callback_data=val)
             else:
@@ -126,7 +133,7 @@ class Buttons:
             builder.row(InlineKeyboardButton(text='➕добавить еще', callback_data='additional'))
 
         if is_ready:
-            finish_btn = InlineKeyboardButton(text='✅сохранить', callback_data='edit_save' if edit else 'save')
+            finish_btn = InlineKeyboardButton(text='✅сохранить', callback_data='save')
             builder.row(finish_btn)
 
         builder.row(InlineKeyboardButton(text='🗑удалить сборку', callback_data='back'))
@@ -134,7 +141,7 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def additional_comp_markup(added):
+    def additional_comp_markup(added) -> InlineKeyboardMarkup:
         additional_components = {
             'fan': 'корпусные вентиляторы',
             'sound_card': 'звуковую карту',
@@ -149,35 +156,19 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def final_markup(username):
+    def final_markup(username: str) -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='✏изменить', callback_data='change'),
-                              InlineKeyboardButton(text='🕵️‍сохранить анонимно', callback_data='save_anonim'),
-                              InlineKeyboardButton(text=f'😀сохранить от @{username}',
+            inline_keyboard=[[InlineKeyboardButton(text='✏изменить', callback_data='change')],
+                             [InlineKeyboardButton(text='🕵️‍сохранить анонимно', callback_data='save_anonim')],
+                             [InlineKeyboardButton(text=f'😀сохранить от @{username}',
                                                    callback_data='save_with_username')]]
         )
 
     @staticmethod
-    def my_pc_markup():
-        return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='✏изменить', callback_data='change')],
-                             [InlineKeyboardButton(text='🔙назад', callback_data='back')]]
-        )
-
-    @staticmethod
-    def my_assemblies(data: list[dict]):
+    def my_builds(data: list[dict]) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
         for item in data:
             if item['title']:
                 builder.row(InlineKeyboardButton(text=item['title'], callback_data='assembly_' + str(item['id'])))
         builder.row(InlineKeyboardButton(text='🔙назад', callback_data='back'))
         return builder.as_markup()
-
-    @staticmethod
-    def show_pc_markup():
-        return InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='фильтры', callback_data='back'),
-                              InlineKeyboardButton(text='❤️', callback_data='like'), ],
-                             [InlineKeyboardButton(text='<<<', callback_data='prev'),
-                              InlineKeyboardButton(text='>>>', callback_data='next')]]
-        )
