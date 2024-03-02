@@ -246,8 +246,8 @@ async def return_to_main_menu(callback: types.CallbackQuery, state: FSMContext):
 
 def register_add_handlers(add_router: Dispatcher):
     add_router.message.register(get_model, AddState.get_model, F.content_type == 'text')
-    add_router.message.register(get_price, AddState.get_price, F.content_type == 'text')
-    add_router.message.register(get_amount, AddState.get_amount, F.content_type == 'text')
+    add_router.message.register(get_price, AddState.get_price, F.content_type == 'text' & F.text.regexp(r'\d+'))
+    add_router.message.register(get_amount, AddState.get_amount, F.content_type == 'text' & F.text.regexp(r'\d+'))
     add_router.message.register(get_link, AddState.get_link, F.content_type == 'text')
     add_router.message.register(get_title, AddState.get_title, F.content_type == 'text')
     add_router.message.register(get_info, AddState.edit_model, F.content_type == 'text')

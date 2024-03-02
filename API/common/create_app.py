@@ -15,7 +15,7 @@ def create_app(config_filename):
 
     from ..resources.users import UsersResource, users_blueprint, Login, SignUp, ChangePassword
     from ..resources.components import ComponentsResource, comp_blueprint
-    from ..resources.public_info import InfoResource
+    from ..resources.build_info import InfoResource
 
     users_api = Api(users_blueprint)
     comp_api = Api(comp_blueprint)

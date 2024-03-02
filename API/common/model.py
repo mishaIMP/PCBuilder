@@ -16,7 +16,7 @@ class User(db.Model):
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean(), default=False, nullable=True)
-    public_info = db.relationship('PublicInfo', backref='user', lazy=True, passive_deletes=True,
+    build_info = db.relationship('BuildInfo', backref='user', lazy=True, passive_deletes=True,
                                   cascade="all, delete-orphan")
 
     def __init__(self, username, password):
@@ -48,7 +48,7 @@ class User(db.Model):
         return False
 
 
-class PublicInfo(db.Model):
+class BuildInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     likes = db.Column(db.Integer, default=0)
     total_price = db.Column(db.Integer, nullable=True)
@@ -56,8 +56,8 @@ class PublicInfo(db.Model):
     date = db.Column(db.Date, default=date.today())
     title = db.Column(db.String(50), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    components = db.relationship('Components', backref='public_info', lazy=True, passive_deletes=True)
-    additional_components = db.relationship('AdditionalComponents', backref='public_info', lazy=True,
+    components = db.relationship('Components', backref='build_info', lazy=True, passive_deletes=True)
+    additional_components = db.relationship('AdditionalComponents', backref='build_info', lazy=True,
                                             passive_deletes=True)
 
     def __repr__(self):
@@ -71,7 +71,7 @@ class Components(db.Model):
     price = db.Column(db.Integer, nullable=False)
     amount = db.Column(db.Integer, default=1)
     link = db.Column(db.String(255), nullable=True)
-    public_info_id = db.Column(db.Integer, db.ForeignKey('public_info.id'), nullable=False)
+    build_info_id = db.Column(db.Integer, db.ForeignKey('build_info.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
@@ -84,7 +84,7 @@ class AdditionalComponents(db.Model):
     price = db.Column(db.Integer, nullable=False)
     amount = db.Column(db.Integer, default=1)
     link = db.Column(db.String(255), nullable=True)
-    public_info_id = db.Column(db.Integer, db.ForeignKey('public_info.id'), nullable=False)
+    build_info_id = db.Column(db.Integer, db.ForeignKey('build_info.id'), nullable=False)
 
     def __repr__(self):
         return str(self.__dict__)
