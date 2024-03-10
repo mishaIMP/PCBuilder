@@ -1,4 +1,5 @@
 /.idea
 .env
 /venv
-instance/config.py
+/instance/config.py
+**/__pycache__/

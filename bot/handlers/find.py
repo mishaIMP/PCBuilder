@@ -149,8 +149,10 @@ async def get_date(callback: types.CallbackQuery, state: FSMContext):
 
 
 def register_find_handlers(find_router: Dispatcher):
-    find_router.message.register(get_min_and_max_price, FindState.get_min_price, F.content_type == 'text' & F.text.regexp(r'\d+'))
-    find_router.message.register(get_min_and_max_price, FindState.get_max_price, F.content_type == 'text' & F.text.regexp(r'\d+'))
+    find_router.message.register(get_min_and_max_price, FindState.get_min_price,
+                                 F.content_type == 'text' & F.text.regexp(r'\d+'))
+    find_router.message.register(get_min_and_max_price, FindState.get_max_price,
+                                 F.content_type == 'text' & F.text.regexp(r'\d+'))
     find_router.message.register(get_author, FindState.get_author, F.content_type == 'text')
     find_router.message.register(get_title_to_find, FindState.get_title, F.content_type == 'text')
     find_router.message.register(command_find, Command('find'))
