@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from bot.common.buttons import Buttons
 from bot.common.dialog import MAIN_MENU_TEXT, MyText
-from bot.common.helper import display_pc, calculate_total_price, get_comps
+from bot.common.helper import display_pc, get_comps
 from bot.common.states import MyState, MainState, AddState
 
 
@@ -44,9 +44,7 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
     info_id = int(callback.data[9:])
     await state.update_data(info_id=info_id)
     res = api.get_components(info_id=info_id)
-    await state.update_data(total_price=calculate_total_price(res))
-    await callback.message.edit_text(text=display_pc(res), parse_mode='HTML',
-                                     reply_markup=Buttons.my_pc_markup)
+    await callback.message.edit_text(text=display_pc(res), parse_mode='HTML', reply_markup=Buttons.my_pc_markup)
     await state.set_state(MyState.show_pc)
 
 
@@ -59,6 +57,7 @@ async def change_assembly(callback: types.CallbackQuery, state: FSMContext, api)
     elif callback.data == 'change':
         res = api.get_components(info_id=data['info_id'])
         comps = get_comps(data=res)
+        comps.append('title')
         await state.update_data(comps=comps)
         markup = Buttons.comp_markup(added=comps)
         await callback.message.edit_text(MyText.EDIT_PC, reply_markup=markup)

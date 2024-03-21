@@ -50,18 +50,13 @@ class Buttons:
             'min_price': '💴min стоимость',
             'max_price': '💵max стоимость',
             'title': '📝название',
-            'author': '🤵‍автор',
-            'date': '🗓время'
+            'author': '🤵‍автор'
         }
-        time = {'day': 'день', 'week': 'неделя', 'month': 'месяц', '3 months': '3 месяца', 'year': 'год'}
         filter_exists = False
         for i in filters_:
             if filters[i]:
                 filter_exists = True
-            if i == 'date':
-                text = f'{filters_[i]}: {time[filters[i]]}' if filters[i] else filters_[i]
-            else:
-                text = f'{filters_[i]}: {filters[i]}' if filters[i] else filters_[i]
+            text = f'{filters_[i]}: {filters[i]}' if filters[i] else filters_[i]
             btn = InlineKeyboardButton(text=text, callback_data=i)
             builder.row(btn)
         if filter_exists:
@@ -156,12 +151,11 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def final_markup(username: str) -> InlineKeyboardMarkup:
+    def final_markup() -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text='✏изменить', callback_data='change')],
-                             [InlineKeyboardButton(text='🕵️‍сохранить анонимно', callback_data='save_anonim')],
-                             [InlineKeyboardButton(text=f'😀сохранить от @{username}',
-                                                   callback_data='save_with_username')]]
+                             [InlineKeyboardButton(text='🕵️‍указать автора сборки', callback_data='set_author')],
+                             [InlineKeyboardButton(text='❌не указывать', callback_data='skip')]]
         )
 
     @staticmethod

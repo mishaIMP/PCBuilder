@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from bot.common.buttons import Buttons
 from bot.common.dialog import MAIN_MENU_TEXT, AddText
-from bot.common.helper import display_pc, calculate_total_price, get_component
+from bot.common.helper import display_pc, get_component
 from bot.common.states import AddState, MainState
 
 
@@ -40,9 +40,7 @@ async def add_component(callback: types.CallbackQuery, state: FSMContext, api):
     elif mode == 'save':
         data = await state.get_data()
         res = api.get_components(info_id=data['info_id'])
-        await state.update_data(total_price=calculate_total_price(res))
-        await callback.message.edit_text(text=display_pc(res), parse_mode='HTML',
-                                         reply_markup=Buttons.final_markup(callback.from_user.username))
+        await callback.message.edit_text(text=display_pc(res), parse_mode='HTML', reply_markup=Buttons.final_markup())
         await state.set_state(AddState.save_pc)
     elif mode in ('title', 'edit_title'):
         await callback.message.edit_text(AddText.ENTER_TITLE, reply_markup=Buttons.back_markup)
@@ -218,42 +216,47 @@ async def back_to_info_menu(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(AddState.add_info)
 
 
-async def select_privacy(callback: types.CallbackQuery, state: FSMContext, api):
+async def select_privacy(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if callback.data == 'change':
         markup = Buttons.comp_markup(added=data['comps'])
         await callback.message.edit_text(AddText.EDIT_BUILD, reply_markup=markup)
         await state.set_state(AddState.add_comp)
-    else:
-        if callback.data == 'save_anonim':
-            username = None
-        else:
-            username = callback.from_user.username
-        info = api.get_info(info_id=data['info_id'])
-        for key in info:
-            if key in data:
-                info[key] = data[key]
-        info['author'] = username
-        api.final_save(info_id=data['info_id'], info=info)
+    elif callback.data == 'skip':
         await callback.message.edit_text(AddText.PC_SAVED, reply_markup=Buttons.back_to_main_menu)
-        await state.update_data(data={})
+        await state.set_state(AddState.save_pc)
+    else:
+        await callback.message.edit_text(AddText.ENTER_AUTHOR)
+        await state.set_state(AddState.get_author)
 
 
-async def return_to_main_menu(callback: types.CallbackQuery, state: FSMContext):
+async def get_author(message: types.Message, state: FSMContext, api):
+    author = message.text
+    data = await state.get_data()
+    api.patch_info(info_id=data['info_id'], payload={'author': author})
+    await message.answer(AddText.PC_SAVED, reply_markup=Buttons.back_to_main_menu)
+    await state.set_state(AddState.save_pc)
+
+
+async def return_to_main_menu(callback: types.CallbackQuery, state: FSMContext, api):
+    data = await state.get_data()
+    api.calculate_total_price(info_id=data['info_id'])
     await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=Buttons.start_markup)
     await state.set_state(MainState.choose_mode)
+    await state.update_data(data={})
 
 
 def register_add_handlers(add_router: Dispatcher):
     add_router.message.register(get_model, AddState.get_model, F.content_type == 'text')
-    add_router.message.register(get_price, AddState.get_price, F.content_type == 'text' & F.text.regexp(r'\d+'))
-    add_router.message.register(get_amount, AddState.get_amount, F.content_type == 'text' & F.text.regexp(r'\d+'))
+    add_router.message.register(get_price, AddState.get_price, F.text.regexp(r'\d+'))
+    add_router.message.register(get_amount, AddState.get_amount, F.text.regexp(r'\d+'))
     add_router.message.register(get_link, AddState.get_link, F.content_type == 'text')
     add_router.message.register(get_title, AddState.get_title, F.content_type == 'text')
     add_router.message.register(get_info, AddState.edit_model, F.content_type == 'text')
     add_router.message.register(get_info, AddState.edit_price, F.content_type == 'text')
     add_router.message.register(get_info, AddState.edit_amount, F.content_type == 'text')
     add_router.message.register(get_info, AddState.edit_link, F.content_type == 'text')
+    add_router.message.register(get_author, AddState.get_author, F.content_type == 'text')
     add_router.message.register(command_add, Command('add'))
 
     add_router.callback_query.register(add_component, AddState.add_comp, ~(F.data == 'additional'))

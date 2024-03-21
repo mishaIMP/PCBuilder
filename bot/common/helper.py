@@ -27,18 +27,6 @@ def display_pc(data: dict) -> str:
     return text
 
 
-def calculate_total_price(data: dict | dict) -> int:
-    total_price = 0
-    for comp in data['comps']['components']:
-        if comp['price']:
-            total_price += comp['price'] * comp.get('amount', 1)
-    if data['additional']['count']:
-        for comp in data['additional']['components']:
-            if comp['price']:
-                total_price += comp['price'] * comp.get('amount', 1)
-    return total_price
-
-
 def get_comps(data: dict) -> list:
     components = []
     for comp in data['comps']['components']:

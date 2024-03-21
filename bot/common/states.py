@@ -17,6 +17,7 @@ class AddState(StatesGroup):
     get_link = State()
     edit_link = State()
     get_title = State()
+    get_author = State()
     add_info = State()
     save_pc = State()
 
@@ -27,7 +28,6 @@ class FindState(StatesGroup):
     get_max_price = State()
     get_author = State()
     get_title = State()
-    get_date = State()
     show_pc = State()
 
 
