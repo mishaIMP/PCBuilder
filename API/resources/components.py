@@ -2,7 +2,7 @@ from flask import Blueprint
 from flask_restful import Resource, reqparse, marshal_with, fields, marshal, abort
 
 from API.common.helper import COMPONENTS
-from API.common.model import AdditionalComponents, db, Components, PublicInfo, auth_token
+from API.common.model import AdditionalComponents, db, Components, BuildInfo, auth_token
 
 comp_blueprint = Blueprint('components', __name__)
 
@@ -37,7 +37,7 @@ class ComponentsResource(Resource):
     @staticmethod
     def get(info_id=None):
         if info_id:
-            info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+            info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
             params = args_parser.parse_args()['comps']
             components = info.components
             additional = info.additional_components
@@ -70,9 +70,9 @@ class ComponentsResource(Resource):
             abort(403)
         args = component_parser.parse_args()
         if args['component'] in COMPONENTS:
-            component = Components(public_info_id=info_id, **args)
+            component = Components(build_info_id=info_id, **args)
         else:
-            component = AdditionalComponents(public_info_id=info_id, **args)
+            component = AdditionalComponents(build_info_id=info_id, **args)
         db.session.add(component)
         db.session.commit()
         return {'status': 'created'}, 201
@@ -87,7 +87,7 @@ class ComponentsResource(Resource):
         if not user.is_admin and not user.is_owner(info_id):
             abort(403)
         args = component_parser.parse_args()
-        info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
         if args['component'] in COMPONENTS:
             components = info.components
         else:
@@ -116,7 +116,7 @@ class ComponentsResource(Resource):
         if not user.is_admin and not user.is_owner(info_id):
             abort(403)
         args = component_parser.parse_args()
-        info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
         if args['component'] in COMPONENTS:
             components = info.components
         else:
@@ -144,7 +144,7 @@ class ComponentsResource(Resource):
         if not user.is_admin and not user.is_owner(info_id):
             print(user)
             abort(403)
-        info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
         components = info.components
         additional = info.additional_components
 

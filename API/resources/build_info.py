@@ -3,9 +3,9 @@ from datetime import datetime
 from flask_restful import Resource, reqparse, marshal_with, fields, abort
 
 from API.common.helper import is_valid_params, convert_info
-from API.common.model import db, User, PublicInfo, auth_token
+from API.common.model import db, User, BuildInfo, auth_token
 
-public_info_fields = {
+build_info_fields = {
     'id': fields.Integer,
     'likes': fields.Integer,
     'total_price': fields.Integer,
@@ -17,7 +17,7 @@ public_info_fields = {
 
 list_fields = {
     'count': fields.Integer,
-    'items': fields.List(fields.Nested(public_info_fields))
+    'items': fields.List(fields.Nested(build_info_fields))
 }
 
 args_parser = reqparse.RequestParser()
@@ -53,31 +53,31 @@ class InfoResource(Resource):
             abort(404)
 
         if info_id:
-            public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
-            result = convert_info(public_info, params)
+            build_info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
+            result = convert_info(build_info, params)
             return result
 
         if args['user']:
             if not user_id:
                 abort(404)
             user = db.one_or_404(db.select(User).filter_by(id=user_id))
-            results = user.public_info
+            results = user.build_info
 
         else:
-            query = PublicInfo.query
+            query = BuildInfo.query
             if args['min_price']:
-                query = query.filter(PublicInfo.total_price >= args['min_price'])
+                query = query.filter(BuildInfo.total_price >= args['min_price'])
             if args['max_price']:
-                query = query.filter(PublicInfo.total_price <= args['max_price'])
+                query = query.filter(BuildInfo.total_price <= args['max_price'])
             if args['author']:
-                query = query.filter(PublicInfo.author == args['author'])
+                query = query.filter(BuildInfo.author == args['author'])
             if args['title']:
                 for word in args['title'].split():
-                    query = query.filter(PublicInfo.title.like('%' + word + '%'))
+                    query = query.filter(BuildInfo.title.like('%' + word + '%'))
             if args['limit']:
                 query = query.limit(args['limit'])
             if args['date']:
-                query = query.filter(PublicInfo.date >= args['date'])
+                query = query.filter(BuildInfo.date >= args['date'])
 
             results = query.all()
         results = convert_info(results, params)
@@ -85,17 +85,17 @@ class InfoResource(Resource):
         return results
 
     @staticmethod
-    @marshal_with(public_info_fields)
+    @marshal_with(build_info_fields)
     @auth_token
     def post(user):
         args = parser.parse_args()
-        public_info = PublicInfo(user_id=user.id, **args)
-        db.session.add(public_info)
+        build_info = BuildInfo(user_id=user.id, **args)
+        db.session.add(build_info)
         db.session.commit()
-        return public_info, 201
+        return build_info, 201
 
     @staticmethod
-    @marshal_with(public_info_fields)
+    @marshal_with(build_info_fields)
     @auth_token
     def put(user, info_id=None):
         if not info_id:
@@ -103,14 +103,14 @@ class InfoResource(Resource):
         if not user.is_admin and not user.is_owner(info_id):
             abort(403)
         args = parser.parse_args()
-        public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        build_info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
         for key, val in args.items():
-            public_info.__setattr__(key, val)
+            build_info.__setattr__(key, val)
         db.session.commit()
-        return public_info, 201
+        return build_info, 201
 
     @staticmethod
-    @marshal_with(public_info_fields)
+    @marshal_with(build_info_fields)
     @auth_token
     def patch(user, info_id=None):
         if not info_id:
@@ -118,12 +118,12 @@ class InfoResource(Resource):
         if not user.is_admin and not user.is_owner(info_id):
             abort(403)
         args = parser.parse_args()
-        public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+        build_info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
         for key, val in args.items():
             if val:
-                public_info.__setattr__(key, val)
+                build_info.__setattr__(key, val)
         db.session.commit()
-        return public_info, 204
+        return build_info, 204
 
     @staticmethod
     @auth_token
@@ -132,16 +132,41 @@ class InfoResource(Resource):
             abort(404)
         if user.is_admin or user.is_owner(info_id):
             params = params_parser.parse_args()['params']
-            public_info = db.one_or_404(db.select(PublicInfo).filter_by(id=info_id))
+            build_info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
             if params:
                 if not is_valid_params(params):
                     abort(404)
 
                 for param in params.split('-'):
-                    public_info.__setattr__(param, None)
+                    build_info.__setattr__(param, None)
 
             else:
-                db.session.delete(public_info)
+                db.session.delete(build_info)
             db.session.commit()
             return {'status': 'ok'}, 202
         abort(403)
+
+
+class TotalPriceResource(Resource):
+    @staticmethod
+    @auth_token
+    def patch(user, info_id=None):
+        if not info_id:
+            abort(404)
+        if not user.is_admin and not user.is_owner(info_id):
+            abort(403)
+        build = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
+        components = build.components
+        additional = build.additional_components
+        if not components:
+            abort(404)
+        total_price = 0
+        for component in components:
+            total_price += component.price * component.amount
+        if additional:
+            for component in additional:
+                total_price += component.price * component.amount
+        if total_price != build.total_price:
+            build.total_price = total_price
+            db.session.commit()
+        return {'total_price': total_price}, 201

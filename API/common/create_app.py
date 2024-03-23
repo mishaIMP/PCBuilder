@@ -15,7 +15,7 @@ def create_app(config_filename):
 
     from ..resources.users import UsersResource, users_blueprint, Login, SignUp, ChangePassword
     from ..resources.components import ComponentsResource, comp_blueprint
-    from ..resources.build_info import InfoResource
+    from ..resources.build_info import InfoResource, TotalPriceResource
 
     users_api = Api(users_blueprint)
     comp_api = Api(comp_blueprint)
@@ -27,6 +27,7 @@ def create_app(config_filename):
 
     comp_api.add_resource(ComponentsResource, '/comp', '/comp/<int:info_id>')
     comp_api.add_resource(InfoResource, '/info', '/info/<int:info_id>')
+    comp_api.add_resource(TotalPriceResource, '/info/total_price/<int:info_id>')
 
     app.register_blueprint(users_blueprint)
     app.register_blueprint(comp_blueprint)
