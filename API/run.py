@@ -4,7 +4,8 @@ from werkzeug.exceptions import default_exceptions
 
 from API.common.create_app import create_app
 
-app = create_app('config.py')
+
+app = create_app()
 
 
 @app.errorhandler(Exception)

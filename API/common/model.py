@@ -17,7 +17,7 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean(), default=False, nullable=True)
     build_info = db.relationship('BuildInfo', backref='user', lazy=True, passive_deletes=True,
-                                  cascade="all, delete-orphan")
+                                 cascade="all, delete-orphan")
 
     def __init__(self, username, password):
         self.username = username
@@ -40,7 +40,7 @@ class User(db.Model):
         return False
 
     def is_owner(self, info_id):
-        info = self.public_info
+        info = self.build_info
         if info:
             for row in info:
                 if row.id == info_id:

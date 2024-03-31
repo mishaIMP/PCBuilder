@@ -9,7 +9,7 @@ from bot.common.states import AddState, MainState
 
 
 async def choose_mode(callback: types.CallbackQuery, state: FSMContext, api):
-    markup = Buttons.comp_markup([])
+    markup = Buttons.comp_markup()
     await callback.message.edit_text(AddText.ADD_COMPONENTS, reply_markup=markup)
     await state.update_data()
     res = api.init_pc()
@@ -24,7 +24,7 @@ async def command_add(message: types.Message, state: FSMContext, api):
         api.delete_pc(info_id=data['info_id'])
     res = api.init_pc()
     await state.update_data(info_id=res, comps=[])
-    markup = Buttons.comp_markup([])
+    markup = Buttons.comp_markup()
     await message.answer(AddText.ADD_COMPONENTS, reply_markup=markup)
     await state.set_state(AddState.add_comp)
 

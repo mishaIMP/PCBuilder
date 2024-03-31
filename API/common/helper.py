@@ -2,7 +2,7 @@ from typing import Iterable, Sized
 
 from sqlalchemy_utils import InstrumentedList
 
-from API.common.model import PublicInfo
+from API.common.model import BuildInfo
 
 COMPONENTS = ['cpu', 'gpu', 'motherboard', 'ram', 'case', 'storage', 'psu', 'culler', 'fan']
 
@@ -15,13 +15,13 @@ def is_valid_params(params: str | None) -> bool:
     return True
 
 
-def convert_info(rows: InstrumentedList | PublicInfo, params: str | None) -> None | dict:
+def convert_info(rows: InstrumentedList | BuildInfo, params: str | None) -> None | dict:
     if params:
         params = params.split('-')
     else:
         params = ['id', 'likes', 'total_price', 'author', 'date', 'title', 'user_id']
 
-    def convert(table_: PublicInfo) -> dict:
+    def convert(table_: BuildInfo) -> dict:
         res = {}
         for param in params:
             if param == 'date':
@@ -41,10 +41,10 @@ def convert_info(rows: InstrumentedList | PublicInfo, params: str | None) -> Non
 
 
 def is_valid_request_data(data: list | None) -> bool:
-    if not data or type(data) != list:
+    if not data or type(data) is not list:
         return False
     for pc in data:
-        if type(pc) != dict:
+        if type(pc) is not dict:
             return False
         for item in ('component', 'model', 'price', 'amount', 'link'):
             if item not in pc:

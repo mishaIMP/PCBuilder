@@ -69,7 +69,7 @@ class Buttons:
 
     @staticmethod
     def add_info_markup(added: dict) -> InlineKeyboardMarkup:
-        info = {'модель': 'model', 'цену': 'price', 'количество': 'amount', 'ссылку': 'link'}
+        info = {'модель': 'model', 'цена': 'price', 'количество': 'amount', 'ссылка': 'link'}
         builder = InlineKeyboardBuilder()
         is_ready = True
         for key, val in info.items():
@@ -87,7 +87,9 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def comp_markup(added) -> InlineKeyboardMarkup:
+    def comp_markup(added=None) -> InlineKeyboardMarkup:
+        if not added:
+            added = []
         components = {
             'название': 'title',
             'процессор': 'cpu',
@@ -136,7 +138,9 @@ class Buttons:
         return builder.as_markup()
 
     @staticmethod
-    def additional_comp_markup(added) -> InlineKeyboardMarkup:
+    def additional_comp_markup(added=None) -> InlineKeyboardMarkup:
+        if not added:
+            added = []
         additional_components = {
             'fan': 'корпусные вентиляторы',
             'sound_card': 'звуковую карту',
@@ -161,8 +165,11 @@ class Buttons:
     @staticmethod
     def my_builds(data: list[dict]) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
-        for item in data:
-            if item['title']:
-                builder.row(InlineKeyboardButton(text=item['title'], callback_data='assembly_' + str(item['id'])))
+        for build in data:
+            if build['title']:
+                builder.row(
+                    InlineKeyboardButton(text=build['title'],
+                                         callback_data='assembly_' + str(build['id']))
+                )
         builder.row(InlineKeyboardButton(text='🔙назад', callback_data='back'))
         return builder.as_markup()

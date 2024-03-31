@@ -1,5 +1,5 @@
 from flask import Blueprint
-from flask_restful import Resource, reqparse, fields, marshal_with, marshal, abort
+from flask_restful import Resource, reqparse, fields, marshal, abort
 
 from API.common.model import db, User, auth_token
 
@@ -40,20 +40,12 @@ class UsersResource(Resource):
             }, user_list_fields), 200
         abort(403)
 
-    @marshal_with(user_fields)
-    def put(self, user_id):
-        args = post_parser.parse_args()
-        user = db.one_or_404(db.select(User).filter_by(id=user_id))
-        user.username = args['username']
-        db.session.commit()
-        return user, 200
-
     @staticmethod
     @auth_token
     def delete(user, user_id):
         if user.is_admin:
             user_ = db.one_or_404(db.select(User).filter_by(id=user_id))
-            assemblies = user_.public_info
+            assemblies = user_.build_info
             while assemblies:
                 components = assemblies[0].components + assemblies[0].additional_components
                 while components:
