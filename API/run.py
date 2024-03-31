@@ -2,8 +2,7 @@ from flask import jsonify
 from werkzeug.exceptions import HTTPException
 from werkzeug.exceptions import default_exceptions
 
-from API.common.create_app import create_app
-
+from .common.create_app import create_app
 
 app = create_app()
 

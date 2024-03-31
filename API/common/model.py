@@ -4,7 +4,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from API.common.auth import AuthToken
+from .auth import AuthToken
 
 db = SQLAlchemy()
 migrate = Migrate()
