@@ -4,7 +4,7 @@ from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery
 
-from bot.common.api import Api
+from ..common.api import Api
 
 
 class MainMiddleware(BaseMiddleware):

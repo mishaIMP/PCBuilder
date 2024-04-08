@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  api:
+    build: API/
+    ports:
+      - "5000:5000"
+    network_mode: host
+    command: python -m API.run
+
+  bot:
+    build: bot/
+    network_mode: host
+    command: python -m bot.run_bot
+    depends_on:
+      - api
+

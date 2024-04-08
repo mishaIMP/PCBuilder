@@ -2,10 +2,10 @@ from aiogram import types, F, Dispatcher
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from bot.common.buttons import Buttons
-from bot.common.dialog import MAIN_MENU_TEXT, MyText
-from bot.common.helper import display_pc, get_comps
-from bot.common.states import MyState, MainState, AddState
+from ..common.buttons import Buttons
+from ..common.dialog import MAIN_MENU_TEXT, MyText
+from ..common.helper import display_pc, get_comps
+from ..common.states import MyState, MainState, AddState
 
 
 async def choose_mode(callback: types.CallbackQuery, state: FSMContext, api):

@@ -2,12 +2,12 @@ import asyncio
 import logging
 import sys
 
-from bot.common.imports import dp, bot
-from bot.handlers.add import register_add_handlers
-from bot.handlers.find import register_find_handlers
-from bot.handlers.my import register_my_handlers
-from bot.handlers.start import register_start_handler
-from bot.middlewares.main import MainMiddleware
+from .common.imports import dp, bot
+from .handlers.add import register_add_handlers
+from .handlers.find import register_find_handlers
+from .handlers.my import register_my_handlers
+from .handlers.start import register_start_handler
+from .middlewares.main import MainMiddleware
 
 
 async def main() -> None:
