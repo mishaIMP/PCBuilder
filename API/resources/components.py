@@ -142,7 +142,6 @@ class ComponentsResource(Resource):
         if not info_id:
             abort(404)
         if not user.is_admin and not user.is_owner(info_id):
-            print(user)
             abort(403)
         info = db.one_or_404(db.select(BuildInfo).filter_by(id=info_id))
         components = info.components

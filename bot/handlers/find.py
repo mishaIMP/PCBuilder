@@ -82,7 +82,6 @@ async def choose_filters(callback: types.CallbackQuery, state: FSMContext, api):
 
 async def show_pc(callback: types.CallbackQuery, state: FSMContext, api):
     data = await state.get_data()
-    print(callback.data)
     if callback.data == 'to_filters':
         await state.update_data(data={})
         await callback.message.edit_text(FindText.ADD_FILTERS, reply_markup=Buttons.filter_markup(data['filters']))
